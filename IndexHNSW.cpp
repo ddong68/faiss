@@ -17,10 +17,13 @@
 #include <cstdio>
 #include <cmath>
 #include <omp.h>
+#include <functional>
+#include <bits/stdc++.h>
 
 #include <unordered_set>
 #include <queue>
 
+#include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -65,12 +68,14 @@ HNSWStats hnsw_stats;
 
 namespace {
 
-
+// 若hnsw.levels.size == ntotal preset_levels = true;
+// n0 为ntotal
 void hnsw_add_vertices(IndexHNSW &index_hnsw,
                        size_t n0,
                        size_t n, const float *x,
                        bool verbose,
                        bool preset_levels = false) {
+
     HNSW & hnsw = index_hnsw.hnsw;
     size_t ntotal = n0 + n;
     double t0 = getmillisecs();
@@ -80,12 +85,27 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
                n, n0, int(preset_levels));
     }
 
+    // prepare_level_tab 产生最大层次函数
+    // int max_level = hnsw.prepare_level_tab(n, preset_levels);
     int max_level = hnsw.prepare_level_tab(n, preset_levels);
 
     if (verbose) {
         printf("  max_level = %d\n", max_level);
     }
 
+/*    
+    OpenMP中的互斥锁函数：
+
+　　void omp_init_lock(omp_lock *) 初始化互斥器
+
+　　void omp_destroy_lock(omp_lock *)销毁互斥器
+
+　　void omp_set_lock(omp_lock *)获得互斥器
+
+　　void omp_unset_lock(omp_lock *)释放互斥器
+
+　　bool omp_test_lock(omp_lock *)试图获得互斥器，如果获得成功返回true，否则返回false
+*/
     std::vector<omp_lock_t> locks(ntotal);
     for(int i = 0; i < ntotal; i++)
         omp_init_lock(&locks[i]);
@@ -98,14 +118,24 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
 
         // build histogram
         for (int i = 0; i < n; i++) {
+            // pt_id 表示第i个节点
             storage_idx_t pt_id = i + n0;
+            // 获取当前节点的最高层
             int pt_level = hnsw.levels[pt_id] - 1;
+            // 如果当前节点层次 大于hist中的最大值，扩展
             while (pt_level >= hist.size())
                 hist.push_back(0);
+            // 相当于计数器，记录每个层次的节点个数
             hist[pt_level] ++;
         }
 
         // accumulate
+        /*  
+            hist.size() 为层次数，
+            offsets为前缀和数组，hist的前缀值
+            offsets[1]代表hist[0]中的点数
+            offsets[2]代表hist[0]+hist[1]中的点数
+        */ 
         std::vector<int> offsets(hist.size() + 1, 0);
         for (int i = 0; i < hist.size() - 1; i++) {
             offsets[i + 1] = offsets[i] + hist[i];
@@ -115,6 +145,7 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
         for (int i = 0; i < n; i++) {
             storage_idx_t pt_id = i + n0;
             int pt_level = hnsw.levels[pt_id] - 1;
+            // order 存放的为所有（层）的点的位置，包含了重复的点
             order[offsets[pt_level]++] = pt_id;
         }
     }
@@ -133,6 +164,7 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
             }
 
             // random permutation to get rid of dataset order bias
+            // 随机替换当前层次中的点位置
             for (int j = i0; j < i1; j++)
                 std::swap(order[j], order[j + rng2.rand_int(i1 - j)]);
 
@@ -186,16 +218,18 @@ IndexHNSW::IndexHNSW(int d, int M):
     hnsw(M),
     own_fields(false),
     storage(nullptr),
-    reconstruct_from_neighbors(nullptr)
-{}
+    reconstruct_from_neighbors(nullptr){
+    printf("1.5.0 HNSW\n");
+}
 
 IndexHNSW::IndexHNSW(Index *storage, int M):
     Index(storage->d, METRIC_L2),
     hnsw(M),
     own_fields(false),
     storage(storage),
-    reconstruct_from_neighbors(nullptr)
-{}
+    reconstruct_from_neighbors(nullptr){
+    printf("1.5.0 HNSW\n");
+}
 
 IndexHNSW::~IndexHNSW() {
     if (own_fields) {
@@ -215,14 +249,14 @@ void IndexHNSW::search (idx_t n, const float *x, idx_t k,
 
 {
 
-#pragma omp parallel
+// #pragma omp parallel
     {
         VisitedTable vt (ntotal);
         DistanceComputer *dis = get_distance_computer();
         ScopeDeleter1<DistanceComputer> del(dis);
         size_t nreorder = 0;
 
-#pragma omp for
+// #pragma omp for
         for(idx_t i = 0; i < n; i++) {
             idx_t * idxi = labels + i * k;
             float * simi = distances + i * k;
@@ -256,16 +290,859 @@ void IndexHNSW::search (idx_t n, const float *x, idx_t k,
 }
 
 
+
+
+
+void IndexHNSW::search1 (idx_t n, float *x, float *y ,float *distances, idx_t *labels,
+    float *distances1, idx_t *labels1,IndexHNSW* index1,IndexHNSW* index2,idx_t k)
+
+{
+
+    // #pragma omp parallel
+    {
+        VisitedTable vt (ntotal);
+        DistanceComputer *dis = index1->get_distance_computer();
+        ScopeDeleter1<DistanceComputer> del(dis);
+
+
+        VisitedTable vt1 (ntotal);
+        // dis的获取需要 通过storage（也就是传入的index），因此要通过调用的方式获取dis
+        DistanceComputer *dis1 = index2->get_distance_computer();
+        ScopeDeleter1<DistanceComputer> del1(dis1);
+
+        size_t nreorder = 0;
+        float cnt=0;
+        float cnt1=0;
+        float cnt2=0;
+// #pragma omp for
+        for(idx_t i = 0; i < n; i++) {
+            idx_t * idxi = labels + i * k;
+            float * simi = distances + i * k;
+            dis->set_query(x + i * d);
+
+            maxheap_heapify (k, simi, idxi);
+            // index2所需变量
+            idx_t * idxi1 = labels1 + i * k;
+            float * simi1 = distances1 + i * k;
+            dis1->set_query(y + i * d);
+
+            maxheap_heapify (k, simi1, idxi1);
+
+            //hnsw.search_rt_array(*dis, k, idxi, simi,vt,vct);
+            index1->hnsw.search_rt_array(*dis, k, idxi, simi,vt,index1->vct);
+            index2->hnsw.search_rt_array(*dis1, k, idxi1, simi1,vt1,index2->vct);
+            /*if ( i==0 )
+            {
+                for (int i = 0; i < index1->vct.size(); ++i)
+                {
+                    std::cout<<index1->vct[i]<<std::endl;
+
+                }
+
+                std::cout<<":::"<<std::endl;  
+
+                for (int i = 0; i < index2->vct.size(); ++i)
+                {
+                    std::cout<<index2->vct[i]<<std::endl;
+                    
+                }
+            }*/
+            //std::cout<<index2->vct.size()<<"::"<<index1->vct.size()<<std::endl;
+            /*cnt1+=index1->vct.size();
+            cnt2+=index2->vct.size();
+            for (int i = 0; i < index1->vct.size(); ++i)
+            {
+                for (int j = 0; j < index2->vct.size(); ++j)
+                {
+                    if(index1->vct[i]==index2->vct[j])
+                    {
+                        cnt++;
+                        break;
+                    }
+                }
+            }*/
+
+            index2->vct.resize(0);
+            index1->vct.resize(0);
+  
+            //maxheap_reorder (k, simi, idxi);
+            /*
+            if (reconstruct_from_neighbors &&
+                reconstruct_from_neighbors->k_reorder != 0) {
+                int k_reorder = reconstruct_from_neighbors->k_reorder;
+                if (k_reorder == -1 || k_reorder > k) k_reorder = k;
+
+                nreorder += reconstruct_from_neighbors->compute_distances(
+                       k_reorder, idxi, x + i * d, simi);
+
+                // sort top k_reorder
+                maxheap_heapify (k_reorder, simi, idxi, simi, idxi, k_reorder);
+                maxheap_reorder (k_reorder, simi, idxi);
+            }
+            */
+        }
+        //std::cout<<cnt<<"：："<<cnt1<<"::"<<cnt2<<"::"<<cnt*2/(cnt1+cnt2)<<std::endl;
+// #pragma omp critical
+        {
+            hnsw_stats.nreorder += nreorder;
+        }
+    }
+
+}
+
+
+// 将划分index合并
+void IndexHNSW::combine_index_with_division(IndexHNSW& index,
+        IndexHNSW& index1,IndexHNSW& index2,unsigned n){
+    // printf("ok!\n");
+    index.hnsw.prepare_level_tab2(n, true);
+    index.ntotal = n;
+    index.f_storage=index1.storage;
+    index.s_storage=index2.storage;
+    for (int i = 0; i < n; ++i)
+    {
+        // 三个索引中的
+        size_t begin, end;
+        index1.hnsw.neighbor_range(i, 0, &begin, &end);
+        size_t begin1, end1;
+        index2.hnsw.neighbor_range(i, 0, &begin1, &end1);
+        // 合并后的索引
+        size_t begin2, end2;
+        index.hnsw.neighbor_range(i, 0, &begin2, &end2);
+        int m1=0,m2=0;
+        for (int j = begin; j < end; ++j)
+        {   
+            idx_t v1=index1.hnsw.neighbors[j];
+            if(v1>=0&&v1<n)
+                m1++;
+        }
+        for (int j = begin1; j < end1; ++j)
+        {   
+            idx_t v1=index2.hnsw.neighbors[j];
+            if(v1>=0&&v1<n)
+                m2++;
+        }
+        int cnt1=m1,cnt2=m2;
+        int M = index.hnsw.nb_neighbors(0);
+        // 索引1中的邻居相对于索引2会多减一个
+        if(m1+m2>M-1){
+            // 上取整
+            cnt1=m1-((m1+m2-M+1)*m1+m1+m2-1)/(m1+m2);
+            // 下取整
+            cnt2=m2-(m1+m2-M+1)*m2/(m1+m2);
+        }
+        // 合并两个邻居，index1前往后，索引2从后往前
+        while(cnt1){
+            index.hnsw.neighbors[begin2++]=index1.hnsw.neighbors[begin++];
+            cnt1--;
+        }
+        while(cnt2){
+            index.hnsw.neighbors[--end2]=index2.hnsw.neighbors[begin1++];
+            cnt2--;
+        }
+        // 索引1的末尾处为分隔符-2位置
+        index.hnsw.neighbors[begin2]=-2;
+    }
+    /*printf("132%d\n",index.hnsw.nb_neighbors(0));
+    for (int i = 0; i < 10; ++i)
+    {
+        size_t begin, end;
+        index1.hnsw.neighbor_range(i, 0, &begin, &end);
+        size_t begin1, end1;
+        index1.hnsw.neighbor_range(i, 0, &begin1, &end1);
+        size_t begin2, end2;
+        index.hnsw.neighbor_range(i, 0, &begin2, &end2);
+        for (int j = begin; j < end; ++j)
+        {
+            idx_t v1=index1.hnsw.neighbors[j];
+            if(v1<0||v1>n)
+                break;
+            printf("1 :%d ", v1);
+        }
+        printf("\n");
+        for (int j = begin2; j < end1; ++j)
+        {
+            idx_t v1=index2.hnsw.neighbors[j];
+            if(v1<0||v1>n)
+                break;
+            printf("2 :%d ", v1);
+        }
+        printf("\n");
+        for (int j = begin2; j < end2; ++j)
+        {
+            size_t v1=index.hnsw.neighbors[j];
+            printf("3 :%d ", v1);
+        }
+        printf("\n");
+    }*/
+}
+
+
+void IndexHNSW::final_top_100(float* simi,idx_t* idxi,
+            float*simi1,idx_t* idxi1,
+            float*simi2,idx_t* idxi2,
+            DistanceComputer& dis1,
+            DistanceComputer& dis2,
+            idx_t k) const{
+    std::priority_queue<std::pair<float,idx_t>> top_100_pq;
+    // 防止索引1索引2处理重复元素
+    std::unordered_set<idx_t> common_elements;
+    // 遍历数组
+    /*for (int i = 0; i < k; ++i)
+    {
+        if(idxi1[i]<0)
+            break;
+        common_elements.insert(idxi1[i]);
+        float d0 = simi1[i];
+        d0 += dis2(idxi1[i]);
+        
+        if(top_100_pq.size()<100||(!top_100_pq.empty()&&top_100_pq.top().first>d0)){
+            top_100_pq.emplace(std::make_pair(d0,idxi1[i]));
+            if (top_100_pq.size()>100)
+            {
+                top_100_pq.pop();
+            }
+        }
+    }
+
+    for (int i = 0; i < k; ++i)
+    {
+        if(common_elements.find(idxi2[i])!=common_elements.end())
+            continue;
+        if(idxi2[i]<0)
+            break;
+        float d0 = simi2[i];
+        d0 += dis1(idxi2[i]);
+        
+        if(top_100_pq.size()<100||(!top_100_pq.empty()&&top_100_pq.top().first>d0)){
+            top_100_pq.emplace(std::make_pair(d0,idxi2[i]));
+            if (top_100_pq.size()>100)
+            {
+                top_100_pq.pop();
+            }
+        }
+    }*/
+    // 计算出所有距离
+    std::vector<std::pair<float,idx_t>> res;
+    // printf("ok1\n");
+    for (int i = 0; i < k; ++i)
+    {
+        if (idxi1[i]<0)
+            break;
+        // common_elements.insert(idxi1[i]);
+        float d0 = simi1[i] + dis2(idxi1[i]); 
+        res.emplace_back(d0,idxi1[i]);
+    }
+
+    //printf("ok2\n");
+    for (int i = 0; i < k; ++i)
+    {
+        //printf("a\n");
+        if (idxi2[i]<0)
+            break;
+        //printf("b\n");
+        /*if(common_elements.find(idxi2[i])!=common_elements.end())
+            continue;*/
+        // printf("dfL:%ld\n",idxi2[] );
+        float d0 = simi2[i] + dis1(idxi2[i]);   
+        //printf("c\n");
+        res.emplace_back(d0,idxi2[i]);
+        //printf("d\n");
+    }
+    //printf("ok3\n");
+    std::partial_sort(std::begin(res), std::begin(res) + 1, std::end(res));
+
+    /*for (int i = 0; i < 1; ++i)
+    {
+        // 防止res中的数量不足k个
+        if(i+1>res.size())
+            idxi[i]=-1;
+        idxi[i]=res[i].second;
+    }*/
+    idxi[0] = res[0].second; 
+    //printf("ok4\n");
+/*    // 将100个最近邻存到idxt，simi中
+    int i=0;
+    while(!top_100_pq.empty()){
+        idxi[i]=top_100_pq.top().second;
+        simi[i]=top_100_pq.top().first;
+        top_100_pq.pop();
+        i++;
+    }*/
+}
+
+
+
+
+void IndexHNSW::combine_search(
+        idx_t n,
+        const float* x,
+        const float* y,
+        idx_t k,
+        float* distances,
+        idx_t* labels,
+        float* distances1,
+        idx_t* labels1,
+        float* distances2,
+        idx_t* labels2) const
+
+{
+    FAISS_THROW_IF_NOT(k > 0);
+
+    FAISS_THROW_IF_NOT_MSG(
+            storage,
+            "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
+    size_t n1 = 0, n2 = 0, n3 = 0, ndis = 0, nreorder = 0;
+    idx_t check_period = 10000;
+/*    idx_t RS=n*k;
+    float distances1[RS];
+    float distances2[RS];
+    idx_t labels1[RS];
+    idx_t labels2[RS];*/
+    RandomGenerator rng3(789456);
+    for (idx_t i0 = 0; i0 < n; i0 += check_period) {
+        idx_t i1 = std::min(i0 + check_period, n);
+
+//#pragma omp parallel
+        {
+            VisitedTable vt1(ntotal);
+            VisitedTable vt2(ntotal);
+            
+            DistanceComputer* dis1 = get_distance_computer(f_storage);
+            DistanceComputer* dis2 = get_distance_computer(s_storage);
+            ScopeDeleter1<DistanceComputer> del1(dis1),del2(dis2);
+//#pragma omp for reduction(+ : n1, n2, n3, ndis, nreorder)
+            for (idx_t i = i0; i < i1; i++) {
+                idx_t* idxi = labels + i * k;
+                float* simi = distances + i * k;
+                idx_t* idxi1 = labels1 + i * k;
+                float* simi1 = distances1 + i * k;
+                idx_t* idxi2 = labels2 + i * k;
+                float* simi2 = distances2 + i * k;
+                dis1->set_query(x + i * d);
+                dis2->set_query(y + i * d);
+                // 经测试单索引搜索没有问题
+                hnsw.combine_search(*dis1, k, idxi1, simi1, 0,vt1,rng3);
+                hnsw.combine_search(*dis2, k, idxi2, simi2,1, vt2,rng3);
+                final_top_100(simi,idxi,
+                                simi1,idxi1,
+                                simi2,idxi2,
+                                *dis1,
+                                *dis2,
+                                k);
+                // 经测试时间影响可忽略
+                maxheap_reorder(100, simi, idxi);   
+
+                /*n1 += stats.n1;
+                n2 += stats.n2;
+                n3 += stats.n3;
+                ndis += stats.ndis;
+                nreorder += stats.nreorder;
+                maxheap_reorder(k, simi, idxi);
+
+                if (reconstruct_from_neighbors &&
+                    reconstruct_from_neighbors->k_reorder != 0) {
+                    int k_reorder = reconstruct_from_neighbors->k_reorder;
+                    if (k_reorder == -1 || k_reorder > k)
+                        k_reorder = k;
+
+                    nreorder += reconstruct_from_neighbors->compute_distances(
+                            k_reorder, idxi, x + i * d, simi);
+
+                    // sort top k_reorder
+                    maxheap_heapify(
+                            k_reorder, simi, idxi, simi, idxi, k_reorder);
+                    maxheap_reorder(k_reorder, simi, idxi);
+                }*/
+            }
+        }
+    }
+
+    if (metric_type == METRIC_INNER_PRODUCT) {
+        // we need to revert the negated distances
+        for (size_t i = 0; i < k * n; i++) {
+            distances[i] = -distances[i];
+        }
+    }
+}
+
+
+
+
+
 void IndexHNSW::add(idx_t n, const float *x)
 {
     FAISS_THROW_IF_NOT(is_trained);
     int n0 = ntotal;
+    // storage ==  indexflat
     storage->add(n, x);
     ntotal = storage->ntotal;
-
+    // this 表示当前调用add方法的对象 -- IndexHNSW对象
+    // hnsw.levels.size() == ntotal ： bool类型
     hnsw_add_vertices (*this, n0, n, x, verbose,
                        hnsw.levels.size() == ntotal);
 }
+
+
+
+
+
+// 将热点索引（直接增强旧索引）
+void IndexHNSW::combine_index_with_hot_hubs_enhence(idx_t n,int len_ratios,
+        const float* ht_hbs_ratios,int find_hubs_mode,
+        int find_neighbors_mode, const int* nb_nbors_per_level){
+    // 每个点对应的类别
+
+    // 节点数量+热点数量 , 放入vector中存储
+    aod_level();//统计平均出度和邻居占满比例
+    double t0  = getmillisecs();
+    std::vector<float> ratios;
+    std::vector<int> nb_reverse_neighbors ;
+    idx_t tmp = n;
+    // printf("ok!!\n");
+    for (int i = 0; i < len_ratios; i++)
+    { 
+        // printf("第%d层比例%0.4f， 第%d层个数%d\n",i,ht_hbs_ratios[i],i ,nb_nbors_per_level[i]);
+        // 按热点等级分配热点新增邻居个数（若三层：3*m ,2*m ,1*m ,m为0层邻居数）
+        tmp += n*ht_hbs_ratios[i]*nb_nbors_per_level[i];
+        ratios.push_back(ht_hbs_ratios[i]);
+        nb_reverse_neighbors.push_back(nb_nbors_per_level[i]);
+    }
+    // 防止下取整
+    tmp += 5;
+
+    hnsw.prepare_level_tab4(n,tmp);
+    ntotal = tmp;
+    // 统计热点,将多层次热点及与他们相连的邻居放到hot_hubs中
+    std::vector<std::unordered_map<idx_t,std::vector<idx_t>>> hot_hubs(len_ratios);
+    hnsw.find_hot_hubs_enhence(hot_hubs,n,ratios,find_hubs_mode,
+            find_neighbors_mode);
+
+    // 距离计算器
+    DistanceComputer* dis = get_distance_computer(storage);
+    ScopeDeleter1<DistanceComputer> del(dis);
+
+    hnsw.add_new_reverse_link_end_enhence(hot_hubs,n,*dis,nb_reverse_neighbors);
+
+
+    // 热点反向邻居个数统计
+    std::map<int,int> hubs_distr;
+    for (int i = 0; i < hot_hubs.size(); ++i)
+    {
+        auto each_level = hot_hubs[i];
+        int mm = -1,mn = INT_MAX;
+        double avg = 0; 
+        size_t sum = 0;
+        // a.first 为热点id， a.second 为热点反向邻居集合
+        for (auto a:each_level)
+        {
+            // 热点a，有a.second.size()个反向邻居的点个数+1
+            hubs_distr[a.second.size()]++;
+            sum += a.second.size();
+            mm = std::max(mm ,(int)a.second.size());
+            mn = std::min(mn, (int)a.second.size());
+        }
+        avg = (double)sum/(each_level.size()*1.0);
+        printf("第%d层热点最大反向邻居个数为：%d,最小邻居个数为：%d,平均邻居个数为：%0.3f\n", i, mm, mn ,avg);
+    }
+
+    // 热点反向边个数 统计输出
+/*    for (auto a:hubs_distr)
+    {   
+        printf("%d\t", a.first);
+    }
+
+    printf("----------------------------\n");
+
+    for (auto a:hubs_distr)
+    {   
+        printf("%d\t", a.second);
+    }
+
+    printf("----------------------------\n");*/
+
+    aod_level();
+
+/*    for (int i = 0; i < tmp; ++i)
+    {
+        size_t begin,end;
+        hnsw.neighbor_range(i, 0, &begin, &end);
+        for (int j = begin; j < end; ++j)
+        {
+            printf("%d\t",hnsw.neighbors[j]);
+        }
+        printf("\n");
+    }*/
+
+}
+
+
+void IndexHNSW::aod_level(){
+    
+    size_t sum = 0;
+    idx_t n = hnsw.levels.size();
+    idx_t tot = hnsw.offsets.size();
+    idx_t cnt = 0;
+    int out_degree = 0;
+    std::map<int,int> out_degrees;
+
+    for (int i = 0; i < tot; ++i)
+    {
+        out_degree = 0;
+        size_t begin,end;
+        hnsw.neighbor_range(i,0,&begin,&end);
+        size_t j;
+        for ( j = begin; j < end; ++j)
+        {
+            if (hnsw.neighbors[j]<0||hnsw.neighbors[j]>=n)
+            {
+                break;
+            }
+            sum++;
+            out_degree++;
+        }
+        if (i<n)
+        {   
+            if (j==end) 
+                cnt++;
+            out_degrees[out_degree]++;
+        }
+
+    }
+
+    printf("0层平均出度为 ： %0.3f\t,邻居占满比例：%0.3f\n", sum/(n*1.0),cnt/(n*1.0));
+
+/*    for (auto a:out_degrees)
+    {   
+        printf("%d\t", a.first);
+    }
+
+    printf("----------------------------\n");
+
+    for (auto a:out_degrees)
+    {   
+        printf("%d\t", a.second);
+    }
+
+    printf("----------------------------\n");*/
+
+
+}
+
+
+
+
+void IndexHNSW::search_with_hot_hubs_enhence(
+        idx_t n,
+        const float* x,
+        idx_t k,
+        float* distances,
+        idx_t* labels,size_t xb_size) const
+
+{
+    FAISS_THROW_IF_NOT(k > 0);
+
+    FAISS_THROW_IF_NOT_MSG(
+            storage,
+            "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
+    size_t n1 = 0, n2 = 0, n3 = 0, ndis = 0, nreorder = 0;
+    idx_t check_period = 10000;
+    for (idx_t i0 = 0; i0 < n; i0 += check_period) {
+        idx_t i1 = std::min(i0 + check_period, n);
+
+//#pragma omp parallel
+        {
+            VisitedTable vt(ntotal);
+            RandomGenerator rng3(789456);
+            DistanceComputer* dis = get_distance_computer();
+            ScopeDeleter1<DistanceComputer> del(dis);
+//#pragma omp for reduction(+ : n1, n2, n3, ndis, nreorder)
+            for (idx_t i = i0; i < i1; i++) {
+                idx_t* idxi = labels + i * k;
+                float* simi = distances + i * k;
+                dis->set_query(x + i * d);
+                // printf("ok4\n");
+                maxheap_heapify(k, simi, idxi);
+                hnsw.search_with_hot_hubs_enhence(*dis, k, idxi, simi, vt,xb_size,rng3);
+                // printf("ok5\n");
+                maxheap_reorder(k, simi, idxi);
+/*                printf("%f\t,%f\t,%d\t,%d\n",
+                                    simi[0],simi[1],
+                                    idxi[0],idxi[1]);*/
+            }
+        }
+    }
+}
+
+
+
+// random_v2
+void IndexHNSW::search_with_hot_hubs_enhence_random(
+        idx_t n,
+        const float* x,
+        idx_t k,
+        float* distances,
+        idx_t* labels,size_t xb_size) const
+
+{
+    FAISS_THROW_IF_NOT(k > 0);
+
+    FAISS_THROW_IF_NOT_MSG(
+            storage,
+            "Please use IndexHNSWFlat (or variants) instead of IndexHNSW directly");
+    size_t n1 = 0, n2 = 0, n3 = 0, ndis = 0, nreorder = 0;
+    idx_t check_period = 10000;
+    for (idx_t i0 = 0; i0 < n; i0 += check_period) {
+        idx_t i1 = std::min(i0 + check_period, n);
+
+//#pragma omp parallel
+        {
+            VisitedTable vt(ntotal);
+            RandomGenerator rng3(789456);
+            DistanceComputer* dis = get_distance_computer(storage);
+            ScopeDeleter1<DistanceComputer> del(dis);
+//#pragma omp for reduction(+ : n1, n2, n3, ndis, nreorder)
+            for (idx_t i = i0; i < i1; i++) {
+                idx_t* idxi = labels + i * k;
+                float* simi = distances + i * k;
+                dis->set_query(x + i * d);
+                // printf("ok4\n");
+                maxheap_heapify(k, simi, idxi);
+                hnsw.search_with_hot_hubs_enhence_random(*dis, k, idxi, simi, vt,xb_size,rng3);
+                // printf("ok5\n");
+                maxheap_reorder(k, simi, idxi);
+/*                printf("%f\t,%f\t,%d\t,%d\n",
+                                    simi[0],simi[1],
+                                    idxi[0],idxi[1]);*/
+            }
+        }
+    }
+}
+
+// pars3 为 对应关系 , 将子图的
+void subTranferToAll(std::vector<std::unordered_map<idx_t,std::vector<idx_t>>>& hot_hubs,
+    std::vector<std::unordered_map<idx_t,std::vector<idx_t>>>& sub_hot_hubs,
+    idx_t* idxScript){
+    // 遍历每一层
+    for(int i=0;i<hot_hubs.size();i++){
+        auto& all = hot_hubs[i];
+        auto& sub = sub_hot_hubs[i];
+        int sum = 0;
+        // 遍历当层每一个子图热点，形成全局热点加入到全局热点中
+        for (auto& b:sub)
+        {
+            idx_t subHubID = b.first;
+            std::vector<idx_t>& nbs = b.second;
+            // 找到对应的全局邻居
+            idx_t allHubID = idxScript[subHubID];
+            sum += nbs.size();
+            for (idx_t j = 0; j < nbs.size(); ++j)
+            {
+                // printf("子图:%ld,对应id:%ld ：\n",nbs[j],idxScript[nbs[j]]);
+                hot_hubs[i][allHubID].push_back(idxScript[nbs[j]]);    
+            }
+        } 
+    }
+}
+
+void vctReset(std::vector<std::unordered_map<idx_t,std::vector<idx_t>>>& sub_hot_hubs){
+    for (int i = 0; i < sub_hot_hubs.size(); ++i)
+    {
+        sub_hot_hubs[i].clear();
+    }
+}
+
+// 统计每层论据
+void avgOutdegres(std::vector<std::unordered_map<idx_t,std::vector<idx_t>>>& hot_hubs){
+        // 热点反向邻居个数统计
+    std::map<int,int> hubs_distr;
+    for (int i = 0; i < hot_hubs.size(); ++i)
+    {
+        auto each_level = hot_hubs[i];
+        int mm = -1,mn = INT_MAX;
+        double avg = 0; 
+        size_t sum = 0;
+        // a.first 为热点id， a.second 为热点反向邻居集合
+        for (auto a:each_level)
+        {
+            // 热点a，有a.second.size()个反向邻居的点个数+1
+            hubs_distr[a.second.size()]++;
+            sum += a.second.size();
+            mm = std::max(mm ,(int)a.second.size());
+            mn = std::min(mn, (int)a.second.size());
+        }
+        avg = (double)sum/(each_level.size()*1.0);
+        printf("第%d层热点最大反向邻居个数为：%d,最小邻居个数为：%d,平均邻居个数为：%0.3f\n", i, mm, mn ,avg);
+    }
+}
+
+
+
+
+
+// 子图选择热点
+void IndexHNSW::enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+        const float* ht_hbs_ratios,int find_hubs_mode,
+        int find_neighbors_mode, const int* nb_nbors_per_level,
+        IndexHNSW& ihf1,IndexHNSW& ihf2,IndexHNSW& ihf3,IndexHNSW& ihf4,IndexHNSW& ihf5,
+        idx_t* idxScript1,idx_t* idxScript2,
+        idx_t* idxScript3,idx_t* idxScript4,idx_t* idxScript5){
+    // for (int i = 0; i < 5; ++i)
+    // {
+    //     printf("IndexHNSW：%ld\n", idxScript1[i]);
+    // }
+/*void IndexHNSW::enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+    const float* ht_hbs_ratios,int find_hubs_mode,
+    int find_neighbors_mode, const int* nb_nbors_per_level,
+    IndexHNSW& ihf1,IndexHNSW& ihf2,IndexHNSW& ihf3,
+    idx_t* idxScript1,idx_t* idxScript2,
+    idx_t* idxScript3){*/
+// void IndexHNSW::enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+//         const float* ht_hbs_ratios,int find_hubs_mode,
+//         int find_neighbors_mode, const int* nb_nbors_per_level,
+//         IndexHNSW& ihf1,
+//         idx_t* idxScript1){
+
+    // 节点数量+热点数量 , 放入vector中存储
+    aod_level();
+    double t0  = getmillisecs();
+    std::vector<float> ratios;
+    std::vector<int> nb_reverse_neighbors ;
+    idx_t tmp = n;
+    // printf("ok!!\n");
+    for (int i = 0; i < len_ratios; i++)
+    { 
+        // printf("第%d层比例%0.4f， 第%d层个数%d\n",i,ht_hbs_ratios[i],i ,nb_nbors_per_level[i]);
+        // 按热点等级分配热点新增邻居个数（若三层：3*m ,2*m ,1*m ,m为0层邻居数）
+        tmp += n*ht_hbs_ratios[i]*nb_nbors_per_level[i];
+        ratios.push_back(ht_hbs_ratios[i]);
+        nb_reverse_neighbors.push_back(nb_nbors_per_level[i]);
+    }
+    // 防止下取整
+    tmp += 5;
+
+    // 分配空间（如果并行需要修改 ，levels中分配每个点的添加位置）
+    hnsw.prepare_level_tab4(n,tmp);
+    ntotal = tmp;
+    // 统计热点,将多层次热点及与他们相连的邻居放到hot_hubs中
+    std::vector<std::unordered_map<idx_t,std::vector<idx_t>>> hot_hubs(len_ratios);
+    std::vector<std::unordered_map<idx_t,std::vector<idx_t>>> sub_hot_hubs(len_ratios);
+    ihf1.hnsw.find_hot_hubs_enhence_subIndex(sub_hot_hubs,ihf1.ntotal,ratios,find_hubs_mode,
+            find_neighbors_mode);
+    ihf1.aod_level();
+    avgOutdegres(sub_hot_hubs);
+    subTranferToAll(hot_hubs,sub_hot_hubs,idxScript1);
+    vctReset(sub_hot_hubs);
+    ihf2.hnsw.find_hot_hubs_enhence_subIndex(sub_hot_hubs,ihf2.ntotal,ratios,find_hubs_mode,
+            find_neighbors_mode);
+    ihf2.aod_level();
+    avgOutdegres(sub_hot_hubs);
+    subTranferToAll(hot_hubs,sub_hot_hubs,idxScript2);
+    vctReset(sub_hot_hubs);
+    ihf3.hnsw.find_hot_hubs_enhence_subIndex(sub_hot_hubs,ihf3.ntotal,ratios,find_hubs_mode,
+            find_neighbors_mode);
+    ihf3.aod_level();
+    avgOutdegres(sub_hot_hubs);
+    subTranferToAll(hot_hubs,sub_hot_hubs,idxScript3);
+    vctReset(sub_hot_hubs);
+    ihf4.hnsw.find_hot_hubs_enhence_subIndex(sub_hot_hubs,ihf4.ntotal,ratios,find_hubs_mode,
+            find_neighbors_mode);
+    ihf4.aod_level();
+    avgOutdegres(sub_hot_hubs);
+    subTranferToAll(hot_hubs,sub_hot_hubs,idxScript4);
+    vctReset(sub_hot_hubs);
+    ihf5.hnsw.find_hot_hubs_enhence_subIndex(sub_hot_hubs,ihf5.ntotal,ratios,find_hubs_mode,
+            find_neighbors_mode);
+    ihf5.aod_level();
+    avgOutdegres(sub_hot_hubs);
+    subTranferToAll(hot_hubs,sub_hot_hubs,idxScript5);
+    vctReset(sub_hot_hubs);
+    printf("ok123!!!\n");
+
+    // 距离计算器
+    DistanceComputer* dis = get_distance_computer(storage);
+    ScopeDeleter1<DistanceComputer> del(dis);
+
+    hnsw.add_links_to_hubs(hot_hubs,n);
+    hnsw.add_new_reverse_link_end_enhence(hot_hubs,n,*dis,nb_reverse_neighbors);
+
+    aod_level();
+    avgOutdegres(hot_hubs);
+}
+
+
+// cur 表示当前子图开始位置，len表示子图结点个数， x乱序数据
+void get_hubs_and_reverse_links(int cur, int len, const idx_t* x,
+    std::vector<std::unordered_map<idx_t,std::vector<idx_t>>>& hot_hubs,
+    float ratios ){
+    // 选择固定比例的热点，每个热点选择20000
+    int cnts = (int)len*ratios; // 热点数量
+    idx_t bg = cur + cnts; // 热点反向边开始位置
+    idx_t ed = bg;
+    auto& hot_hub = hot_hubs[0];
+    // printf("cnt == %d,cur == %d\t,len == %d\t,\n",cnts,cur,len);
+    for (int i = cur; i < ed; ++i) // 为每个热点找出热点邻居，邻居之间不重叠
+    {   // printf("x[i] = %ld\n",x[i]);
+        for (int j = 0; j < 200; ++j)
+        {
+            hot_hub[x[i]].push_back(x[bg+j]);
+        }
+        bg += 200;
+    }
+}
+
+
+// 子图中随机选取热点，随机选取热点邻居
+// cls 类别数目
+void IndexHNSW::complete_random_hot_hubs_enhence(idx_t n,const idx_t* x,int len_ratios,
+        const float* ht_hbs_ratios,const int* nb_nbors_per_level,int cls){
+
+    // 节点数量+热点数量 , 放入vector中存储
+    aod_level();
+    double t0  = getmillisecs();
+    std::vector<float> ratios;
+    std::vector<int> nb_reverse_neighbors ;
+    idx_t tmp = n;
+    for (int i = 0; i < len_ratios; i++)
+    { 
+        tmp += n*ht_hbs_ratios[i]*nb_nbors_per_level[i];
+        ratios.push_back(ht_hbs_ratios[i]);
+        nb_reverse_neighbors.push_back(nb_nbors_per_level[i]);
+    }
+    // 防止下取整
+    tmp += 5;
+
+    // 分配空间（如果并行需要修改 ，levels中分配每个点的添加位置）
+    hnsw.prepare_level_tab4(n,tmp);
+    ntotal = tmp;
+    // 统计热点,将多层次热点及与他们相连的邻居放到hot_hubs中
+    // std::vector<std::unordered_map<idx_t,std::vector<idx_t>>> hot_hubs(len_ratios); // 变为全局变量;
+    // 寻找热点反向边
+    hnsw.hot_hubs.resize(len_ratios);
+
+    idx_t len = n/cls; // 数据集划分为cls类，每类有len个数据点
+    idx_t cur = 0;
+    for (int i = 0; i < cls; ++i)
+    {   printf("%d\n",i);
+        get_hubs_and_reverse_links(cur,len,x,hnsw.hot_hubs,ratios[0]);
+        cur += len;
+    }
+    
+    // printf("ok123!!!\n"); 
+
+    DistanceComputer* dis = get_distance_computer(storage); // 距离计算器
+    ScopeDeleter1<DistanceComputer> del(dis);
+
+    hnsw.add_links_to_hubs(hnsw.hot_hubs,n); // 将反向边连向热点
+    hnsw.add_new_reverse_link_end_enhence(hnsw.hot_hubs,n,*dis,nb_reverse_neighbors);
+
+    aod_level();
+    avgOutdegres(hnsw.hot_hubs);
+}
+
+
+
+
 
 void IndexHNSW::reset()
 {
@@ -303,8 +1180,8 @@ void IndexHNSW::shrink_level_0_neighbors(int new_size)
             }
 
             std::vector<NodeDistFarther> shrunk_list;
-            HNSW::shrink_neighbor_list(*dis, initial_list,
-                                       shrunk_list, new_size);
+            // HNSW::shrink_neighbor_list(*dis, initial_list,
+            //                            shrunk_list, new_size,100000);
 
             for (size_t j = begin; j < end; j++) {
                 if (j - begin < shrunk_list.size())
@@ -325,14 +1202,14 @@ void IndexHNSW::search_level_0(
 {
 
     storage_idx_t ntotal = hnsw.levels.size();
-#pragma omp parallel
+// #pragma omp parallel
     {
         DistanceComputer *qdis = get_distance_computer();
         ScopeDeleter1<DistanceComputer> del(qdis);
 
         VisitedTable vt (ntotal);
 
-#pragma omp for
+// #pragma omp for
         for(idx_t i = 0; i < n; i++) {
             idx_t * idxi = labels + i * k;
             float * simi = distances + i * k;
@@ -389,6 +1266,60 @@ void IndexHNSW::search_level_0(
 
 }
 
+
+void IndexHNSW::static_in_degree_by_direct(idx_t n){
+    DistanceComputer *qdis = get_distance_computer();
+    hnsw.static_in_degree_by_direct(n,*qdis);
+
+}
+
+
+void IndexHNSW::createKnn(idx_t n,int k){
+    for (idx_t i = 0; i < ntotal; i++) {
+        if((int)i%5000==0){
+            printf("%d\n",i);
+        }
+        DistanceComputer *qdis = get_distance_computer();
+        float vec[d];
+        storage->reconstruct(i, vec);
+        qdis->set_query(vec);
+
+        std::priority_queue<NodeDistCloser> initial_list;
+
+        hnsw.getKnn(*qdis,i,ntotal,k,initial_list);
+        std::priority_queue<NodeDistFarther> initial_list_Father;
+
+        std::vector<NodeDistFarther> shrunk_list;
+        while(!initial_list.empty()){
+            initial_list_Father.emplace(initial_list.top().d,initial_list.top().id);
+            //printf("id:%d\tdis:%f\n",initial_list.top().id,initial_list.top().d);
+            initial_list.pop();
+        }
+        while(!initial_list_Father.empty()){
+            shrunk_list.push_back(initial_list_Father.top());
+            initial_list_Father.pop();
+        }
+        // printf("\n");
+        // HNSW::shrink_neighbor_list(*qdis, initial_list_Father, shrunk_list, k);
+
+        size_t begin, end;
+        hnsw.neighbor_range(i, 0, &begin, &end);
+
+        for (size_t j = begin; j < end; j++) {
+            if (j - begin < shrunk_list.size())
+                hnsw.neighbors[j] = shrunk_list[j - begin].id;
+            else
+                hnsw.neighbors[j] = -1;
+        }
+
+            
+    }
+    printf("构建KNN完毕\n");
+}
+
+
+
+
 void IndexHNSW::init_level_0_from_knngraph(
        int k, const float *D, const idx_t *I)
 {
@@ -411,7 +1342,7 @@ void IndexHNSW::init_level_0_from_knngraph(
         }
 
         std::vector<NodeDistFarther> shrunk_list;
-        HNSW::shrink_neighbor_list(*qdis, initial_list, shrunk_list, dest_size);
+        // HNSW::shrink_neighbor_list(*qdis, initial_list, shrunk_list, dest_size,100000);
 
         size_t begin, end;
         hnsw.neighbor_range(i, 0, &begin, &end);
@@ -451,9 +1382,11 @@ void IndexHNSW::init_level_0_from_entry_points(
             storage->reconstruct (pt_id, vec);
             dis->set_query (vec);
 
+            
+
             hnsw.add_links_starting_from(*dis, pt_id,
                                          nearest, (*dis)(nearest),
-                                         0, locks.data(), vt);
+                                         0, locks.data(), vt,0);
 
             if (verbose && i % 10000 == 0) {
                 printf("  %d / %d\r", i, n);
@@ -564,7 +1497,8 @@ struct GenericDistanceComputer: DistanceComputer {
     }
 
     float operator () (storage_idx_t i) override
-    {
+    {   
+        // IndexFlat中的方法，memcpy
         storage.reconstruct(i, buf.data());
         return fvec_L2sqr(q, buf.data(), d);
     }
@@ -587,6 +1521,12 @@ struct GenericDistanceComputer: DistanceComputer {
 }  // namespace
 
 DistanceComputer * IndexHNSW::get_distance_computer () const
+{
+    return new GenericDistanceComputer (*storage);
+}
+
+// 自己添加
+DistanceComputer * IndexHNSW::get_distance_computer (Index* storage) const
 {
     return new GenericDistanceComputer (*storage);
 }
@@ -824,7 +1764,52 @@ void ReconstructFromNeighbors::add_codes(size_t n, const float *x)
 /**************************************************************
  * IndexHNSWFlat implementation
  **************************************************************/
+//inner 内积距离计算器
 
+namespace {
+
+
+struct FlatInnerPrductDis: DistanceComputer {
+    Index::idx_t nb;
+    const float *q;
+    const float *b;
+    size_t ndis;
+
+    float operator () (storage_idx_t i) override
+    {
+        ndis++;
+        return -(fvec_inner_product(q, b + i * d, d));
+    }
+
+    float symmetric_dis(storage_idx_t i, storage_idx_t j) override
+    {
+        return -(fvec_inner_product(b + j * d, b + i * d, d));
+    }
+
+
+    FlatInnerPrductDis(const IndexFlatIP & storage, const float *q = nullptr):
+        q(q)
+    {
+        nb = storage.ntotal;
+        d = storage.d;
+        b = storage.xb.data();
+        ndis = 0;
+    }
+
+    void set_query(const float *x) override {
+        q = x;
+    }
+
+    virtual ~FlatInnerPrductDis () {
+#pragma omp critical
+        {
+            hnsw_stats.ndis += ndis;
+        }
+    }
+};
+
+
+}  // namespace
 
 namespace {
 
@@ -884,11 +1869,21 @@ IndexHNSWFlat::IndexHNSWFlat(int d, int M):
     own_fields = true;
     is_trained = true;
 }
+// IndexHNSWFlat::IndexHNSWFlat(int d, int M):
+//     IndexHNSW(new IndexFlatIP(d), M)
+// {
+//     // printf("内积距离计算器\n");
+//     own_fields = true;
+//     is_trained = true;
+// }
 
 
+//计算距离
 DistanceComputer * IndexHNSWFlat::get_distance_computer () const
 {
+    // printf("获取内积距离计算\n");
     return new FlatL2Dis (*dynamic_cast<IndexFlatL2*> (storage));
+    // return new FlatInnerPrductDis (*dynamic_cast<IndexFlatIP*> (storage));
 }
 
 

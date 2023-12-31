@@ -52,6 +52,7 @@ IndexPQ::IndexPQ ()
 
 void IndexPQ::train (idx_t n, const float *x)
 {
+    // pq.verbose = true; // hanhan
     if (!do_polysemous_training) {        // standard training
         pq.train(n, x);
     } else {

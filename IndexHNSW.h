@@ -11,6 +11,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 #include "HNSW.h"
 #include "IndexFlat.h"
@@ -20,6 +21,8 @@
 
 
 namespace faiss {
+
+using DistanceComputer = HNSW::DistanceComputer;
 
 struct IndexHNSW;
 
@@ -74,9 +77,16 @@ struct IndexHNSW : Index {
     // the link strcuture
     HNSW hnsw;
 
+    // add，默认标准搜索
+    int search_mode;
+
     // the sequential storage
     bool own_fields;
     Index *storage;
+    Index* f_storage;
+    Index* s_storage;
+
+    std::vector<idx_t> vct;
 
     ReconstructFromNeighbors *reconstruct_from_neighbors;
 
@@ -88,6 +98,8 @@ struct IndexHNSW : Index {
     // get a DistanceComputer object for this kind of storage
     virtual HNSW::DistanceComputer *get_distance_computer() const = 0;
 
+    HNSW::DistanceComputer *get_distance_computer(Index* storage) const ;
+
     void add(idx_t n, const float *x) override;
 
     /// Trains the storage if needed
@@ -96,6 +108,89 @@ struct IndexHNSW : Index {
     /// entry point for search
     void search (idx_t n, const float *x, idx_t k,
                  float *distances, idx_t *labels) const override;
+
+    void search1 (idx_t n, float *x, float *y ,
+        float *distances, idx_t *labels,float *distances1, idx_t *labels1,
+        IndexHNSW* index1,IndexHNSW* index2,idx_t k) ;
+
+    // 索引合并
+    void combine_index_with_division(IndexHNSW& index,
+        IndexHNSW& index1,IndexHNSW& index2,unsigned n);
+
+    // 查询结果合并
+    void final_top_100(float* simi,idx_t* idxi,
+            float*simi1,idx_t* idxi1,
+            float*simi2,idx_t* idxi2,
+            DistanceComputer& dis1,
+            DistanceComputer& dis2,
+            idx_t k) const;
+    // 搜索
+    void combine_search(
+            idx_t n,
+            const float* x,
+            const float* y,
+            idx_t k,
+            float* distances,
+            idx_t* labels,
+            float* distances1,
+            idx_t* labels1,
+            float* distances2,
+            idx_t* labels2) const;
+
+    /*
+    *
+    * n:向量个数
+    * len_ratios:热点等级个数
+    * ht_hbs_ratios：热点比例数组
+    * find_hubs_mode:热点寻找方式
+    * find_neighbors_mode：热点邻居寻找方式
+    * nb_reverse_neighbors ： 热点反向边个数
+    *
+    */
+    void combine_index_with_hot_hubs_enhence(idx_t n,int len_ratios,
+            const float* ht_hbs_ratios,int find_hubs_mode,
+            int find_neighbors_mode, const int* max_rvs_nb_per_level);
+
+    void search_with_hot_hubs_enhence(
+            idx_t n,
+            const float* x,
+            idx_t k,
+            float* distances,
+            idx_t* labels,size_t xb_size) const;
+
+    void enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+        const float* ht_hbs_ratios,int find_hubs_mode,
+        int find_neighbors_mode, const int* nb_nbors_per_level,
+        IndexHNSW& ihf1,IndexHNSW& ihf2,IndexHNSW& ihf3,IndexHNSW& ihf4,IndexHNSW& ihf5,
+        idx_t* idxScript1,idx_t* idxScript2,
+        idx_t* idxScript3,idx_t* idxScript4,idx_t* idxScript5);
+/*    void enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+    const float* ht_hbs_ratios,int find_hubs_mode,
+    int find_neighbors_mode, const int* nb_nbors_per_level,
+    IndexHNSW& ihf1,IndexHNSW& ihf2,IndexHNSW& ihf3,
+    idx_t* idxScript1,idx_t* idxScript2,
+    idx_t* idxScript3);*/
+    // void enhence_index_with_subIndex_hubs(idx_t n,int len_ratios,
+    //     const float* ht_hbs_ratios,int find_hubs_mode,
+    //     int find_neighbors_mode, const int* nb_nbors_per_level,
+    //     IndexHNSW& ihf1,
+    //     idx_t* idxScript1);
+
+
+    // 新加热点搜索方法，重启
+    void search_with_hot_hubs_enhence_random(
+        idx_t n,
+        const float* x,
+        idx_t k,
+        float* distances,
+        idx_t* labels,size_t xb_size) const;
+    
+    // 随机热点，随机反向边，热点搜索方法改变，加入重启
+    void complete_random_hot_hubs_enhence(idx_t n,const idx_t *x,int len_ratios,
+        const float* ht_hbs_ratios,const int* nb_nbors_per_level,int cls);
+
+
+    void aod_level();
 
     void reconstruct(idx_t key, float* recons) const override;
 
@@ -127,6 +222,11 @@ struct IndexHNSW : Index {
     void reorder_links();
 
     void link_singletons();
+    void createKnn(idx_t n,int k);
+    
+    void static_in_degree_by_direct(idx_t n);
+
+    // void test_inner_prodect();
 };
 
 
