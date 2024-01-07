@@ -1,5 +1,7 @@
 import time
 import sys
+sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/python')
+sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/benchs')
 import faiss
 import numpy as np
 from datasets import load_sift10K
