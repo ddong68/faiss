@@ -219,7 +219,7 @@ IndexHNSW::IndexHNSW(int d, int M):
     own_fields(false),
     storage(nullptr),
     reconstruct_from_neighbors(nullptr){
-    printf("1.5.0 HNSW\n");
+    printf("hanhan 1.5.0 HNSW\n");
 }
 
 IndexHNSW::IndexHNSW(Index *storage, int M):
@@ -228,7 +228,7 @@ IndexHNSW::IndexHNSW(Index *storage, int M):
     own_fields(false),
     storage(storage),
     reconstruct_from_neighbors(nullptr){
-    printf("1.5.0 HNSW\n");
+    printf("hanhan 1.5.0 HNSW\n");
 }
 
 IndexHNSW::~IndexHNSW() {

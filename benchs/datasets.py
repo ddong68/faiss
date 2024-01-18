@@ -49,7 +49,7 @@ import sys
 import time
 import numpy as np
 
-
+# 文件读取
 def ivecs_read(fname):
     a = np.fromfile(fname, dtype='int32')
     d = a[0]
@@ -85,12 +85,12 @@ def sanitize(x):
     """ convert array to a c-contiguous float array """
     return np.ascontiguousarray(x.astype('float32'))
 
-simdir = '/home/hanhan/Documents/'
+# 数据加载
+simdir = '/mnt/hgfs/share/dataset/'
 
 def load_sift1M():
     print("Loading sift1M...", end='', file=sys.stderr)
     basedir = simdir + 'sift1M/'
-    # basedir = '/mnt/d/github/sift1M/'
     xt = fvecs_read(basedir + "sift_learn.fvecs")
     xb = fvecs_read(basedir + "sift_base.fvecs")
     xq = fvecs_read(basedir + "sift_query.fvecs")
@@ -101,7 +101,6 @@ def load_sift1M():
 
 def load_sift10K():
     print("Loading sift10K...", end='', file=sys.stderr)
-    # basedir = simdir + '1M/sift10K/'
     basedir = simdir + 'sift10k/'
     xt = fvecs_read(basedir + "siftsmall_learn.fvecs")
     xb = fvecs_read(basedir + "siftsmall_base.fvecs")
@@ -112,41 +111,64 @@ def load_sift10K():
     return xb, xq, xt, gt
 
 def load_bigann():
-    # print("Loading bigann...", end='', file=sys.stderr)
-    # basedir = '/mnt/d/github/sift1B/'
-    basedir = simdir + 'sift1B/'
+    print("load sift.....")
+    # basedir = simdir + 'sift1B/'
+    basedir = '/home/wanghongya/sift1B/'
 
-    dbsize = 10
-    xb = bvecs_mmap(basedir + '1milliard.p1.siftbin')
+    dbsize = 100
+    nb = dbsize * 1000 * 1000
+    # xb = bvecs_mmap(basedir + '1milliard.p1.siftbin')
     xq = bvecs_mmap(basedir + 'queries.bvecs')
     xt = bvecs_mmap(basedir + 'learn.bvecs')
     # trim xb to correct size
-    xb = sanitize(xb[:dbsize * 1000 * 1000])
+    # xb = sanitize(xb[:dbsize * 1000 * 1000])
     xt = sanitize(xt[:250000])
     xq = sanitize(xq)
     gt = ivecs_read(basedir + 'gnd/idx_%dM.ivecs' % dbsize)
 
-    return xb, xq, xt, gt
+    return nb, xq, xt, gt
 
+def index_add_bigann(index, nb, step=int(1e7)):
+    # basedir = simdir + 'sift1B/'
+    basedir = '/home/wanghongya/sift1B/'
+    xb = bvecs_mmap(basedir + '1milliard.p1.siftbin')
+    start = 0
+    end = nb
+    sp = nb // step
+    for i in range(start, end, step):
+        t0 = time.time()
+        index.add(sanitize(xb[i: min(end, i + step)]))
+        print(f"add {int(i/step+1)}/{sp} in {(time.time() - t0):.3f} s")
 
 def load_deep():
-    # simdir = '/home/wanghongya/'
     print("load deep.....")
     # basedir = simdir + 'deep1b/'
-    basedir = '/home/wanghongya/deep1b/'
+    basedir = '/data/wanghongyadatasets/deep1b/'
     
-    dbsize = 10
-    xb = mmap_fvecs(basedir + 'deep1B_base.fvecs')
+    dbsize = 100
+    nb = dbsize * 1000 * 1000
+    # xb = mmap_fvecs(basedir + 'deep1B_base.fvecs')
     xq = mmap_fvecs(basedir + 'deep1B_queries.fvecs')
     xt = mmap_fvecs(basedir + 'deep1B_learn.fvecs')
     # trim xb to correct size
-    xb = sanitize(xb[:dbsize * 1000 * 1000])
+    # xb = sanitize(xb[:dbsize * 1000 * 1000])
     xt = sanitize(xt[:500000])
     xq = sanitize(xq[:10000])
     gt = ivecs_read(basedir + 'deep%dM_groundtruth.ivecs' % dbsize)
   
-    return xb, xq, xt, gt
+    return nb, xq, xt, gt
 
+def index_add_deep(index, nb, step=int(1e7)):
+    # basedir = simdir + 'deep1b/'
+    basedir = '/data/wanghongyadatasets/deep1b/'
+    xb = mmap_fvecs(basedir + 'deep1B_base.fvecs')
+    start = 0
+    end = nb
+    sp = nb // step
+    for i in range(start, end, step):
+        t0 = time.time()
+        index.add(sanitize(xb[i: min(end, i + step)]))
+        print(f"add {int(i/step+1)}/{sp} in {(time.time() - t0):.3f} s")
 
 # gist 1M
 def load_gist():
@@ -166,7 +188,6 @@ def load_gist():
     gt = ivecs_read(basedir + 'gist_groundtruth.ivecs')
 
     return xb, xq, xt, gt
-
 
 # glove 1M
 def load_glove():
