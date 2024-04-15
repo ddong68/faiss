@@ -40157,6 +40157,58 @@ SWIGINTERN PyObject *IndexIVFScalarQuantizer_swiginit(PyObject *SWIGUNUSEDPARM(s
   return SWIG_Python_InitShadowInstance(args);
 }
 
+SWIGINTERN PyObject *_wrap_HNSW_angle_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
+  int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject *swig_obj[2] ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "HNSW_angle_set", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_angle_set" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
+  }
+  arg1 = reinterpret_cast< faiss::HNSW * >(argp1);
+  ecode2 = SWIG_AsVal_int(swig_obj[1], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "HNSW_angle_set" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = static_cast< int >(val2);
+  if (arg1) (arg1)->angle = arg2;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_HNSW_angle_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  int result;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_angle_get" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
+  }
+  arg1 = reinterpret_cast< faiss::HNSW * >(argp1);
+  result = (int) ((arg1)->angle);
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_HNSW_assign_probas_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
@@ -47710,6 +47762,65 @@ SWIGINTERN PyObject *ReconstructFromNeighbors_swiginit(PyObject *SWIGUNUSEDPARM(
   return SWIG_Python_InitShadowInstance(args);
 }
 
+SWIGINTERN PyObject *_wrap_IndexHNSW_dis_method_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  faiss::IndexHNSW *arg1 = (faiss::IndexHNSW *) 0 ;
+  std::string *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 = SWIG_OLDOBJ ;
+  PyObject *swig_obj[2] ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "IndexHNSW_dis_method_set", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__IndexHNSW, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "IndexHNSW_dis_method_set" "', argument " "1"" of type '" "faiss::IndexHNSW *""'"); 
+  }
+  arg1 = reinterpret_cast< faiss::IndexHNSW * >(argp1);
+  {
+    std::string *ptr = (std::string *)0;
+    res2 = SWIG_AsPtr_std_string(swig_obj[1], &ptr);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "IndexHNSW_dis_method_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "IndexHNSW_dis_method_set" "', argument " "2"" of type '" "std::string const &""'"); 
+    }
+    arg2 = ptr;
+  }
+  if (arg1) (arg1)->dis_method = *arg2;
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res2)) delete arg2;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_IndexHNSW_dis_method_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  faiss::IndexHNSW *arg1 = (faiss::IndexHNSW *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  std::string *result = 0 ;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__IndexHNSW, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "IndexHNSW_dis_method_get" "', argument " "1"" of type '" "faiss::IndexHNSW *""'"); 
+  }
+  arg1 = reinterpret_cast< faiss::IndexHNSW * >(argp1);
+  result = (std::string *) & ((arg1)->dis_method);
+  resultobj = SWIG_From_std_string(static_cast< std::string >(*result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_IndexHNSW_hnsw_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   faiss::IndexHNSW *arg1 = (faiss::IndexHNSW *) 0 ;
@@ -48531,6 +48642,45 @@ SWIGINTERN PyObject *_wrap_IndexHNSW_search1(PyObject *SWIGUNUSEDPARM(self), PyO
     Py_BEGIN_ALLOW_THREADS
     try {
       (arg1)->search1(arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11);
+    } catch(faiss::FaissException & e) {
+      PyEval_RestoreThread(_save);
+      PyErr_SetString(PyExc_RuntimeError, e.what());
+      SWIG_fail;
+    }
+    Py_END_ALLOW_THREADS
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_IndexHNSW_set_nicdm_distance(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  faiss::IndexHNSW *arg1 = (faiss::IndexHNSW *) 0 ;
+  float *arg2 = (float *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject *swig_obj[2] ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "IndexHNSW_set_nicdm_distance", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__IndexHNSW, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "IndexHNSW_set_nicdm_distance" "', argument " "1"" of type '" "faiss::IndexHNSW *""'"); 
+  }
+  arg1 = reinterpret_cast< faiss::IndexHNSW * >(argp1);
+  res2 = SWIG_ConvertPtr(swig_obj[1], &argp2,SWIGTYPE_p_float, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "IndexHNSW_set_nicdm_distance" "', argument " "2"" of type '" "float *""'"); 
+  }
+  arg2 = reinterpret_cast< float * >(argp2);
+  {
+    Py_BEGIN_ALLOW_THREADS
+    try {
+      (arg1)->set_nicdm_distance(arg2);
     } catch(faiss::FaissException & e) {
       PyEval_RestoreThread(_save);
       PyErr_SetString(PyExc_RuntimeError, e.what());
@@ -80528,6 +80678,8 @@ static PyMethodDef SwigMethods[] = {
 	 { "delete_IndexIVFScalarQuantizer", _wrap_delete_IndexIVFScalarQuantizer, METH_O, NULL},
 	 { "IndexIVFScalarQuantizer_swigregister", IndexIVFScalarQuantizer_swigregister, METH_O, NULL},
 	 { "IndexIVFScalarQuantizer_swiginit", IndexIVFScalarQuantizer_swiginit, METH_VARARGS, NULL},
+	 { "HNSW_angle_set", _wrap_HNSW_angle_set, METH_VARARGS, NULL},
+	 { "HNSW_angle_get", _wrap_HNSW_angle_get, METH_O, NULL},
 	 { "HNSW_assign_probas_set", _wrap_HNSW_assign_probas_set, METH_VARARGS, NULL},
 	 { "HNSW_assign_probas_get", _wrap_HNSW_assign_probas_get, METH_O, NULL},
 	 { "HNSW_cum_nneighbor_per_level_set", _wrap_HNSW_cum_nneighbor_per_level_set, METH_VARARGS, NULL},
@@ -80692,6 +80844,8 @@ static PyMethodDef SwigMethods[] = {
 	 { "delete_ReconstructFromNeighbors", _wrap_delete_ReconstructFromNeighbors, METH_O, NULL},
 	 { "ReconstructFromNeighbors_swigregister", ReconstructFromNeighbors_swigregister, METH_O, NULL},
 	 { "ReconstructFromNeighbors_swiginit", ReconstructFromNeighbors_swiginit, METH_VARARGS, NULL},
+	 { "IndexHNSW_dis_method_set", _wrap_IndexHNSW_dis_method_set, METH_VARARGS, NULL},
+	 { "IndexHNSW_dis_method_get", _wrap_IndexHNSW_dis_method_get, METH_O, NULL},
 	 { "IndexHNSW_hnsw_set", _wrap_IndexHNSW_hnsw_set, METH_VARARGS, NULL},
 	 { "IndexHNSW_hnsw_get", _wrap_IndexHNSW_hnsw_get, METH_O, NULL},
 	 { "IndexHNSW_search_mode_set", _wrap_IndexHNSW_search_mode_set, METH_VARARGS, NULL},
@@ -80714,6 +80868,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "IndexHNSW_train", _wrap_IndexHNSW_train, METH_VARARGS, NULL},
 	 { "IndexHNSW_search", _wrap_IndexHNSW_search, METH_VARARGS, NULL},
 	 { "IndexHNSW_search1", _wrap_IndexHNSW_search1, METH_VARARGS, NULL},
+	 { "IndexHNSW_set_nicdm_distance", _wrap_IndexHNSW_set_nicdm_distance, METH_VARARGS, NULL},
 	 { "IndexHNSW_combine_index_with_division", _wrap_IndexHNSW_combine_index_with_division, METH_VARARGS, NULL},
 	 { "IndexHNSW_final_top_100", _wrap_IndexHNSW_final_top_100, METH_VARARGS, NULL},
 	 { "IndexHNSW_combine_search", _wrap_IndexHNSW_combine_search, METH_VARARGS, NULL},

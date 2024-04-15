@@ -39,6 +39,7 @@
 #include "IndexFlat.h"
 #include "IndexIVFPQ.h"
 
+float* AVGDIS;
 
 extern "C" {
 
@@ -110,6 +111,7 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
     for(int i = 0; i < ntotal; i++)
         omp_init_lock(&locks[i]);
 
+
     // add vectors from highest to lowest level
     std::vector<int> hist;
     std::vector<int> order(n);
@@ -150,6 +152,7 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
         }
     }
 
+
     { // perform add
         RandomGenerator rng2(789);
 
@@ -179,7 +182,8 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
 #pragma omp  for schedule(dynamic)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    dis->set_query (x + (pt_id - n0) * dis->d);
+                    IndexFlatL2& st = *dynamic_cast<IndexFlatL2*>(index_hnsw.storage);
+                    dis->set_query(st.xb.data() + (pt_id - n0) * dis->d);
 
                     hnsw.add_with_locks(*dis, pt_level, pt_id, locks, vt);
 
@@ -249,14 +253,14 @@ void IndexHNSW::search (idx_t n, const float *x, idx_t k,
 
 {
 
-// #pragma omp parallel
+#pragma omp parallel
     {
         VisitedTable vt (ntotal);
         DistanceComputer *dis = get_distance_computer();
         ScopeDeleter1<DistanceComputer> del(dis);
         size_t nreorder = 0;
 
-// #pragma omp for
+#pragma omp for
         for(idx_t i = 0; i < n; i++) {
             idx_t * idxi = labels + i * k;
             float * simi = distances + i * k;
@@ -572,8 +576,6 @@ void IndexHNSW::final_top_100(float* simi,idx_t* idxi,
 }
 
 
-
-
 void IndexHNSW::combine_search(
         idx_t n,
         const float* x,
@@ -667,7 +669,9 @@ void IndexHNSW::combine_search(
 }
 
 
-
+void IndexHNSW::set_nicdm_distance(float* x) {
+    AVGDIS = x;
+}
 
 
 void IndexHNSW::add(idx_t n, const float *x)
@@ -682,9 +686,6 @@ void IndexHNSW::add(idx_t n, const float *x)
     hnsw_add_vertices (*this, n0, n, x, verbose,
                        hnsw.levels.size() == ntotal);
 }
-
-
-
 
 
 // 将热点索引（直接增强旧索引）
@@ -1856,6 +1857,56 @@ struct FlatL2Dis: DistanceComputer {
 
 }  // namespace
 
+namespace {
+
+
+struct NICDMDis: DistanceComputer {
+    Index::idx_t nb; // 100M
+    const float *q;
+    const float *b; // ->8 8 8 8 8 8, q-b
+    size_t ndis;
+
+    float operator () (storage_idx_t i) override // 和query节点比
+    {
+        ndis++;
+        // printf("operator, i = %d\n", i);
+        return fvec_nicdm(int(q - b) / d, i);
+    }
+
+    float symmetric_dis(storage_idx_t i, storage_idx_t j) override // 直接算两个输入之间的
+    {
+        // printf("symmetric_dis, i = %d, j = %d\n", i, j);
+        return fvec_nicdm(i, j);
+    }
+
+    float fvec_nicdm(storage_idx_t i, storage_idx_t j) {
+        float* gt = AVGDIS;
+        return fvec_L2sqr(b + i * d, b + j * d, d) / sqrt(gt[i] * gt[j]);
+    }
+
+    NICDMDis(const IndexFlatL2 & storage, const float *q = nullptr):
+        q(q)
+    {
+        nb = storage.ntotal;
+        d = storage.d;
+        b = storage.xb.data();
+        ndis = 0;
+    }
+
+    void set_query(const float *x) override {
+        q = x;
+    }
+
+    virtual ~NICDMDis () {
+#pragma omp critical
+        {
+            hnsw_stats.ndis += ndis;
+        }
+    }
+};
+
+
+}  // namespace
 
 IndexHNSWFlat::IndexHNSWFlat()
 {
@@ -1881,9 +1932,11 @@ IndexHNSWFlat::IndexHNSWFlat(int d, int M):
 //计算距离
 DistanceComputer * IndexHNSWFlat::get_distance_computer () const
 {
-    // printf("获取内积距离计算\n");
-    return new FlatL2Dis (*dynamic_cast<IndexFlatL2*> (storage));
     // return new FlatInnerPrductDis (*dynamic_cast<IndexFlatIP*> (storage));
+
+    // std::cout << dis_method << "距离计算" << std::endl;
+    if (dis_method == "NICDM") return new NICDMDis(*dynamic_cast<IndexFlatL2*> (storage));
+    return new FlatL2Dis (*dynamic_cast<IndexFlatL2*> (storage));
 }
 
 

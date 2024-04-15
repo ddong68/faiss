@@ -86,7 +86,7 @@ def sanitize(x):
     return np.ascontiguousarray(x.astype('float32'))
 
 # 数据加载
-simdir = '/mnt/hgfs/share/dataset/'
+simdir = '/home/CPC/data/'
 
 def load_sift1M():
     print("Loading sift1M...", end='', file=sys.stderr)
@@ -227,7 +227,7 @@ def load_sun():
     return xb, xq, xt, gt
 
 def load_random():
-    print("Loading sun...", end='', file=sys.stderr)
+    print("Loading random...", end='', file=sys.stderr)
     basedir = '/mnt/c/study/data/random/'
     xt = fvecs_read(basedir + "random_base.fvecs")
     xb = fvecs_read(basedir + "random_base.fvecs")
@@ -237,13 +237,36 @@ def load_random():
     return xb, xq, xt, gt
 
 def load_imageNet():
-    print("Loading sun...", end='', file=sys.stderr)
-    basedir = '/home/wanghongya/dataset/imageNet/'
+    print("Loading imageNet...", end='', file=sys.stderr)
+    basedir = simdir + 'imageNet/'
     xt = fvecs_read(basedir + "imageNet_base.fvecs")
     xb = fvecs_read(basedir + "imageNet_base.fvecs")
     xq = fvecs_read(basedir + "imageNet_query.fvecs")
     gt = ivecs_read(basedir + "imageNet_groundtruth.ivecs")
     print("done", file=sys.stderr)
+    return xb, xq, xt, gt
+
+def load_word2vec():
+    print("Loading word2vec...", end='', file=sys.stderr)
+    basedir = simdir + 'word2vec/'
+    xb = mmap_fvecs(basedir + 'word2vec_base.fvecs')
+    xt = np.zeros((0, 0))
+    xq = mmap_fvecs(basedir + 'word2vec_query.fvecs')
+    xb = sanitize(xb[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + "word2vec_groundtruth.ivecs")
+    print("done", file=sys.stderr)
+    return xb, xq, xt, gt
+
+def load_random_gaussian():
+    print('load_random_gaussian')
+    basedir = simdir + 'random_gaussian/'
+    xb = mmap_fvecs(basedir + 'gaussian_data.fvecs')
+    xt = np.zeros((0, 0))
+    xq = mmap_fvecs(basedir + 'gaussian_query.fvecs')
+    xb = sanitize(xb[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + "gaussian_groundtruth.ivecs")
     return xb, xq, xt, gt
 
 def evaluate(index, xq, gt, k):

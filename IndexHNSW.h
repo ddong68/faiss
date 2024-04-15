@@ -74,6 +74,8 @@ struct IndexHNSW : Index {
 
     typedef HNSW::storage_idx_t storage_idx_t;
 
+    std::string dis_method;
+
     // the link strcuture
     HNSW hnsw;
 
@@ -112,6 +114,9 @@ struct IndexHNSW : Index {
     void search1 (idx_t n, float *x, float *y ,
         float *distances, idx_t *labels,float *distances1, idx_t *labels1,
         IndexHNSW* index1,IndexHNSW* index2,idx_t k) ;
+
+    // 填充AVGDIS
+    void set_nicdm_distance(float* x);
 
     // 索引合并
     void combine_index_with_division(IndexHNSW& index,

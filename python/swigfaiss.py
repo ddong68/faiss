@@ -2110,6 +2110,7 @@ _swigfaiss.IndexIVFScalarQuantizer_swigregister(IndexIVFScalarQuantizer)
 class HNSW(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
     __repr__ = _swig_repr
+    angle = property(_swigfaiss.HNSW_angle_get, _swigfaiss.HNSW_angle_set)
     assign_probas = property(_swigfaiss.HNSW_assign_probas_get, _swigfaiss.HNSW_assign_probas_set)
     cum_nneighbor_per_level = property(_swigfaiss.HNSW_cum_nneighbor_per_level_get, _swigfaiss.HNSW_cum_nneighbor_per_level_set)
     levels = property(_swigfaiss.HNSW_levels_get, _swigfaiss.HNSW_levels_set)
@@ -2424,6 +2425,7 @@ class IndexHNSW(Index):
     def __init__(self, *args, **kwargs):
         raise AttributeError("No constructor defined - class is abstract")
     __repr__ = _swig_repr
+    dis_method = property(_swigfaiss.IndexHNSW_dis_method_get, _swigfaiss.IndexHNSW_dis_method_set)
     hnsw = property(_swigfaiss.IndexHNSW_hnsw_get, _swigfaiss.IndexHNSW_hnsw_set)
     search_mode = property(_swigfaiss.IndexHNSW_search_mode_get, _swigfaiss.IndexHNSW_search_mode_set)
     own_fields = property(_swigfaiss.IndexHNSW_own_fields_get, _swigfaiss.IndexHNSW_own_fields_set)
@@ -2448,6 +2450,9 @@ class IndexHNSW(Index):
 
     def search1(self, n, x, y, distances, labels, distances1, labels1, index1, index2, k):
         return _swigfaiss.IndexHNSW_search1(self, n, x, y, distances, labels, distances1, labels1, index1, index2, k)
+
+    def set_nicdm_distance(self, x):
+        return _swigfaiss.IndexHNSW_set_nicdm_distance(self, x)
 
     def combine_index_with_division(self, index, index1, index2, n):
         return _swigfaiss.IndexHNSW_combine_index_with_division(self, index, index1, index2, n)

@@ -48,6 +48,8 @@ struct VisitedTable;
 
 struct HNSW {
   /// internal storage of vectors (32 bits: this is expensive)
+
+  int angle; // 裁边的夹角
   
   typedef int storage_idx_t;
 
