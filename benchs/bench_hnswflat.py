@@ -33,12 +33,12 @@ r2 = 0.03
 nb1 = 4
 nb2 = 2
 nicdm_k = int(para[4])
-dis_method = 'L2'
-angle = int(para[5])
+dis_method = 'NICDM'
+alpha = float(para[5])
 # python benchs/bench_hnswflat.py glove1M 5 300 10 60
 
 # 加载数据
-print(f"load data: dataset[{dataset}],m[{m}],efc[{efConstruction}],nicdm_k[{nicdm_k}],dis_method[{dis_method}],angle[{angle}]")
+print(f"load data: dataset[{dataset}],m[{m}],efc[{efConstruction}],nicdm_k[{nicdm_k}],dis_method[{dis_method}],alpha[{alpha}]")
 if dataset == "sift10K":
     xb, xq, xt, gt = load_sift10K()
 elif dataset == "audio":
@@ -134,11 +134,10 @@ index.verbose = True
 index.hnsw.search_bounded_queue = False
 index.hnsw.search_mode = 0
 index.dis_method = dis_method
-index.hnsw.angle = angle
 if dis_method == 'NICDM':
     avgdis = clac_nicdm_avgdis_ivf()
     # avgdis = clac_nicdm_avgdis_hnsw()
-    index.set_nicdm_distance(faiss.swig_ptr(avgdis))
+    index.set_nicdm_distance(faiss.swig_ptr(avgdis), alpha)
 faiss.omp_set_num_threads(32)
 index.add(xb)
 

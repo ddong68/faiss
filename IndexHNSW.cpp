@@ -40,6 +40,7 @@
 #include "IndexIVFPQ.h"
 
 float* AVGDIS;
+float alpha;
 
 extern "C" {
 
@@ -669,8 +670,9 @@ void IndexHNSW::combine_search(
 }
 
 
-void IndexHNSW::set_nicdm_distance(float* x) {
+void IndexHNSW::set_nicdm_distance(float* x, float y) {
     AVGDIS = x;
+    alpha = y;
 }
 
 
@@ -1881,7 +1883,7 @@ struct NICDMDis: DistanceComputer {
 
     float fvec_nicdm(storage_idx_t i, storage_idx_t j) {
         float* gt = AVGDIS;
-        return fvec_L2sqr(b + i * d, b + j * d, d) / sqrt(gt[i] * gt[j]);
+        return fvec_L2sqr(b + i * d, b + j * d, d) / powf(sqrtf(gt[i] * gt[j]), alpha);
     }
 
     NICDMDis(const IndexFlatL2 & storage, const float *q = nullptr):

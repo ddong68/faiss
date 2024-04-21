@@ -116,7 +116,7 @@ struct IndexHNSW : Index {
         IndexHNSW* index1,IndexHNSW* index2,idx_t k) ;
 
     // 填充AVGDIS
-    void set_nicdm_distance(float* x);
+    void set_nicdm_distance(float* x, float y);
 
     // 索引合并
     void combine_index_with_division(IndexHNSW& index,

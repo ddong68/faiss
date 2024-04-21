@@ -40157,58 +40157,6 @@ SWIGINTERN PyObject *IndexIVFScalarQuantizer_swiginit(PyObject *SWIGUNUSEDPARM(s
   return SWIG_Python_InitShadowInstance(args);
 }
 
-SWIGINTERN PyObject *_wrap_HNSW_angle_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
-  int arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
-  PyObject *swig_obj[2] ;
-  
-  if (!SWIG_Python_UnpackTuple(args, "HNSW_angle_set", 2, 2, swig_obj)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_angle_set" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
-  }
-  arg1 = reinterpret_cast< faiss::HNSW * >(argp1);
-  ecode2 = SWIG_AsVal_int(swig_obj[1], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "HNSW_angle_set" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = static_cast< int >(val2);
-  if (arg1) (arg1)->angle = arg2;
-  resultobj = SWIG_Py_Void();
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_HNSW_angle_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  PyObject *swig_obj[1] ;
-  int result;
-  
-  if (!args) SWIG_fail;
-  swig_obj[0] = args;
-  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_angle_get" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
-  }
-  arg1 = reinterpret_cast< faiss::HNSW * >(argp1);
-  result = (int) ((arg1)->angle);
-  resultobj = SWIG_From_int(static_cast< int >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
 SWIGINTERN PyObject *_wrap_HNSW_assign_probas_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   faiss::HNSW *arg1 = (faiss::HNSW *) 0 ;
@@ -48660,13 +48608,16 @@ SWIGINTERN PyObject *_wrap_IndexHNSW_set_nicdm_distance(PyObject *SWIGUNUSEDPARM
   PyObject *resultobj = 0;
   faiss::IndexHNSW *arg1 = (faiss::IndexHNSW *) 0 ;
   float *arg2 = (float *) 0 ;
+  float arg3 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   void *argp2 = 0 ;
   int res2 = 0 ;
-  PyObject *swig_obj[2] ;
+  float val3 ;
+  int ecode3 = 0 ;
+  PyObject *swig_obj[3] ;
   
-  if (!SWIG_Python_UnpackTuple(args, "IndexHNSW_set_nicdm_distance", 2, 2, swig_obj)) SWIG_fail;
+  if (!SWIG_Python_UnpackTuple(args, "IndexHNSW_set_nicdm_distance", 3, 3, swig_obj)) SWIG_fail;
   res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_faiss__IndexHNSW, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "IndexHNSW_set_nicdm_distance" "', argument " "1"" of type '" "faiss::IndexHNSW *""'"); 
@@ -48677,10 +48628,15 @@ SWIGINTERN PyObject *_wrap_IndexHNSW_set_nicdm_distance(PyObject *SWIGUNUSEDPARM
     SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "IndexHNSW_set_nicdm_distance" "', argument " "2"" of type '" "float *""'"); 
   }
   arg2 = reinterpret_cast< float * >(argp2);
+  ecode3 = SWIG_AsVal_float(swig_obj[2], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "IndexHNSW_set_nicdm_distance" "', argument " "3"" of type '" "float""'");
+  } 
+  arg3 = static_cast< float >(val3);
   {
     Py_BEGIN_ALLOW_THREADS
     try {
-      (arg1)->set_nicdm_distance(arg2);
+      (arg1)->set_nicdm_distance(arg2,arg3);
     } catch(faiss::FaissException & e) {
       PyEval_RestoreThread(_save);
       PyErr_SetString(PyExc_RuntimeError, e.what());
@@ -80678,8 +80634,6 @@ static PyMethodDef SwigMethods[] = {
 	 { "delete_IndexIVFScalarQuantizer", _wrap_delete_IndexIVFScalarQuantizer, METH_O, NULL},
 	 { "IndexIVFScalarQuantizer_swigregister", IndexIVFScalarQuantizer_swigregister, METH_O, NULL},
 	 { "IndexIVFScalarQuantizer_swiginit", IndexIVFScalarQuantizer_swiginit, METH_VARARGS, NULL},
-	 { "HNSW_angle_set", _wrap_HNSW_angle_set, METH_VARARGS, NULL},
-	 { "HNSW_angle_get", _wrap_HNSW_angle_get, METH_O, NULL},
 	 { "HNSW_assign_probas_set", _wrap_HNSW_assign_probas_set, METH_VARARGS, NULL},
 	 { "HNSW_assign_probas_get", _wrap_HNSW_assign_probas_get, METH_O, NULL},
 	 { "HNSW_cum_nneighbor_per_level_set", _wrap_HNSW_cum_nneighbor_per_level_set, METH_VARARGS, NULL},

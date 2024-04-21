@@ -85,7 +85,6 @@ HNSW::HNSW(int M) : rng(12345) {
   upper_beam = 1;
   offsets.push_back(0);
   hot_hubs.resize(1);
-  angle = 60;
 }
 
 
@@ -467,20 +466,20 @@ void HNSW::shrink_neighbor_list(
       // }
       // else{
       for (NodeDistFarther v2 : output) {
-        // float dist_v1_v2 = qdis.symmetric_dis(v2.id, v1.id);
-        // // q_v2 为已存在节点，若v1_q距离小于v1_v2距离，则不保存v1作为q的邻居（舍弃三角形较长边）
-        // if (dist_v1_v2 < dist_v1_q) {
-        //   good = false;
-        //   break;
-        // }
-
-        // 控制夹角
-        float a = v1.d, b = v2.d, c = qdis.symmetric_dis(v2.id, v1.id);
-        float cosc = (a*a + b*b - c*c) / 2*a*b;
-        if (cosc > cos(angle * M_PI / 180)) { // 角度小于angle则抛弃
+        float dist_v1_v2 = qdis.symmetric_dis(v2.id, v1.id);
+        // q_v2 为已存在节点，若v1_q距离小于v1_v2距离，则不保存v1作为q的邻居（舍弃三角形较长边）
+        if (dist_v1_v2 < dist_v1_q) {
           good = false;
           break;
         }
+
+        // 控制夹角
+        // float a = v1.d, b = v2.d, c = qdis.symmetric_dis(v2.id, v1.id);
+        // float cosc = (a*a + b*b - c*c) / 2*a*b;
+        // if (cosc > cos(angle * M_PI / 180)) { // 角度小于angle则抛弃
+        //   good = false;
+        //   break;
+        // }
       }
    
       if (good) {
@@ -502,20 +501,20 @@ void HNSW::shrink_neighbor_list(
       // }
       // else{
       for (NodeDistFarther v2 : output) {
-        // float dist_v1_v2 = qdis.symmetric_dis(v2.id, v1.id);
-        // // q_v2 为已存在节点，若v1_q距离小于v1_v2距离，则不保存v1作为q的邻居（舍弃三角形较长边）
-        // if (dist_v1_v2 < dist_v1_q) {
-        //   good = false;
-        //   break;
-        // }
-
-        // 控制夹角
-        float a = v1.d, b = v2.d, c = qdis.symmetric_dis(v2.id, v1.id);
-        float cosc = (a*a + b*b - c*c) / 2*a*b;
-        if (cosc > cos(angle * M_PI / 180)) { // 角度小于angle则抛弃
+        float dist_v1_v2 = qdis.symmetric_dis(v2.id, v1.id);
+        // q_v2 为已存在节点，若v1_q距离小于v1_v2距离，则不保存v1作为q的邻居（舍弃三角形较长边）
+        if (dist_v1_v2 < dist_v1_q) {
           good = false;
           break;
         }
+
+        // 控制夹角
+        // float a = v1.d, b = v2.d, c = qdis.symmetric_dis(v2.id, v1.id);
+        // float cosc = (a*a + b*b - c*c) / 2*a*b;
+        // if (cosc > cos(angle * M_PI / 180)) { // 角度小于angle则抛弃
+        //   good = false;
+        //   break;
+        // }
       }
    
       if (good) {
