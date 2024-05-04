@@ -8,6 +8,7 @@ from datasets import load_sift1M
 from datasets import load_sift10K
 from datasets import load_audio
 from datasets import load_glove
+from datasets import load_glove2m
 from datasets import load_imageNet
 from datasets import load_random_gaussian
 from datasets import load_word2vec
@@ -47,6 +48,8 @@ elif dataset == "sift1M":
     xb, xq, xt, gt = load_sift1M()
 elif dataset == "glove1M":
     xb, xq, xt, gt = load_glove()
+elif dataset == "glove2M":
+    xb, xq, xt, gt = load_glove2m()
 elif dataset == "random_gaussian":
     xb, xq, xt, gt = load_random_gaussian()
 elif dataset == "imageNet":

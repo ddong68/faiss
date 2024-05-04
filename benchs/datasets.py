@@ -206,6 +206,22 @@ def load_glove():
     
     return xb, xq, xt, gt
     
+def load_glove2m():
+    print("Loading glove2M...", end='', file=sys.stderr)
+
+    basedir = simdir + 'glove2.2m/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'glove2.2m_base.fvecs')
+    xq = mmap_fvecs(basedir + 'glove2.2m_query.fvecs')
+    xb = sanitize(xb[:xb.shape[0]+1])
+    xq = sanitize(xq[:10000])
+    xt = xb
+    gt = ivecs_read(basedir + 'glove2.2m_groundtruth.ivecs')
+    print("done", file=sys.stderr)
+    
+    return xb, xq, xt, gt
+    
 def load_audio():
     print("Loading audio...", end='', file=sys.stderr)
     basedir = simdir + 'audio/'
@@ -267,6 +283,22 @@ def load_random_gaussian():
     xb = sanitize(xb[:])
     xq = sanitize(xq[:])
     gt = ivecs_read(basedir + "gaussian_groundtruth.ivecs")
+    return xb, xq, xt, gt
+
+def load_trevi():
+    print("load trevi.....")
+    basedir = simdir + 'trevi/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'trevi_base.fvecs')
+    xq = mmap_fvecs(basedir + 'trevi_query.fvecs')
+    xt = mmap_fvecs(basedir + 'trevi_base.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'trevi_groundtruth.ivecs')
+    
     return xb, xq, xt, gt
 
 def evaluate(index, xq, gt, k):
