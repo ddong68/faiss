@@ -30,7 +30,7 @@ part_dataset = ['bigann', 'deep']
 
 # 加载输入参数
 para = sys.argv
-# para = [None, 'glove1M', 5, 300, 10, 0.01]
+para = [None, 'glove1M', 5, 300, 20, 0.01]
 # para = [None, 'bigann', 5, 300, 16, 0.001, 10]
 dataset = str(para[1])
 k = 500
