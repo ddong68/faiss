@@ -1,12 +1,13 @@
 import time
 import sys
-sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/python')
-sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/benchs')
+sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/python')
+sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/benchs')
 import faiss
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from datasets import fvecs_read
 from datasets import load_sift10K
 from datasets import load_sift1M
 from datasets import load_audio
@@ -17,11 +18,11 @@ from datasets import load_trevi
 from datasets import load_random_gaussian
 
 para = sys.argv
-# para = [None, 'trevi', 0.1]
+para = [None, 'sift1M', 0.01]
 dataset = str(para[1])
 rate = float(para[2])
 nicdm_k = 10
-basedir = '/home/CPC/hanhan/'
+basedir = '/home/wanghongya/hanhan/'
 
 
 print(f"dataset[{dataset}]; rate[{rate}]; nicdm_k[{nicdm_k}]")
@@ -55,15 +56,19 @@ def clac_nicdm_avgdis_ivf(bu, se):
     print(f"ivf get knn use time {time.time() - t0}s")
     return np.mean(D, axis=1)
 
+# 从文件读knn
 def read_knn(filename):
-    return np.mean(np.loadtxt(filename), axis=1)
-
+    t0 = time.time()
+    avgdis = np.mean(fvecs_read(filename)[:, :nicdm_k], axis=1)
+    t1 = time.time()
+    print(f"ivf read knn from {filename} use time {t1 - t0}s")
+    return avgdis
 
 t0 = time.time()
 avgdis = clac_nicdm_avgdis_ivf(xb_sampling, xb)
 avgdis2 = clac_nicdm_avgdis_ivf(xb, xb)
-# avgdis = read_knn(basedir + f'data/sampling_knn_1percent/{dataset}_k10.txt')
-# avgdis2 = read_knn(basedir + f'data/knn/{dataset}_k10.txt')
+# avgdis = read_knn(basedir + f'data/sampling1_knn/{dataset}_k1000.fvecs')
+# avgdis2 = read_knn(basedir + f'data/sampling100_knn/{dataset}_k1000.fvecs')
 print(f"get avg knn use time {time.time() - t0}s")
 
 # 绘制密度图

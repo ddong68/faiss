@@ -281,6 +281,8 @@ struct FlatHammingDis : HNSW::DistanceComputer {
     hc.set((uint8_t *)x, code_size);
   }
 
+  void set_query_idx(HNSW::storage_idx_t idx) override { }
+
   virtual ~FlatHammingDis() {
 #pragma omp critical
     {

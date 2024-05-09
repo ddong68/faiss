@@ -77,7 +77,6 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
                        size_t n, const float *x,
                        bool verbose,
                        bool preset_levels = false) {
-
     HNSW & hnsw = index_hnsw.hnsw;
     size_t ntotal = n0 + n;
     double t0 = getmillisecs();
@@ -183,8 +182,7 @@ void hnsw_add_vertices(IndexHNSW &index_hnsw,
 #pragma omp  for schedule(dynamic)
                 for (int i = i0; i < i1; i++) {
                     storage_idx_t pt_id = order[i];
-                    IndexFlatL2& st = *dynamic_cast<IndexFlatL2*>(index_hnsw.storage);
-                    dis->set_query(st.xb.data() + (pt_id - n0) * dis->d);
+                    dis->set_query (x + (pt_id - n0) * dis->d, pt_id);
 
                     hnsw.add_with_locks(*dis, pt_level, pt_id, locks, vt);
 
@@ -1513,10 +1511,9 @@ struct GenericDistanceComputer: DistanceComputer {
         return fvec_L2sqr(buf.data() + d, buf.data(), d);
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
     }
-
 
 };
 
@@ -1799,7 +1796,7 @@ struct FlatInnerPrductDis: DistanceComputer {
         ndis = 0;
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
     }
 
@@ -1844,7 +1841,7 @@ struct FlatL2Dis: DistanceComputer {
         ndis = 0;
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
     }
 
@@ -1865,6 +1862,7 @@ namespace {
 struct NICDMDis: DistanceComputer {
     Index::idx_t nb; // 100M
     const float *q;
+    storage_idx_t idx_q;
     const float *b; // ->8 8 8 8 8 8, q-b
     size_t ndis;
 
@@ -1872,7 +1870,7 @@ struct NICDMDis: DistanceComputer {
     {
         ndis++;
         // printf("operator, i = %d\n", i);
-        return fvec_nicdm(int(q - b) / d, i);
+        return fvec_nicdm(idx_q, i);
     }
 
     float symmetric_dis(storage_idx_t i, storage_idx_t j) override // 直接算两个输入之间的
@@ -1883,7 +1881,8 @@ struct NICDMDis: DistanceComputer {
 
     float fvec_nicdm(storage_idx_t i, storage_idx_t j) {
         float* gt = AVGDIS;
-        return fvec_L2sqr(b + i * d, b + j * d, d) / powf(sqrtf(gt[i] * gt[j]), alpha);
+        float l2sqr = fvec_L2sqr(b + i * d, b + j * d, d);
+        return ~idx_q ? l2sqr / powf(sqrtf(gt[i] * gt[j]), alpha) : l2sqr;
     }
 
     NICDMDis(const IndexFlatL2 & storage, const float *q = nullptr):
@@ -1895,8 +1894,9 @@ struct NICDMDis: DistanceComputer {
         ndis = 0;
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
+        idx_q = idx;
     }
 
     virtual ~NICDMDis () {
@@ -2001,11 +2001,83 @@ struct PQDis: DistanceComputer {
       ndis = 0;
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         pq.compute_distance_table(x, precomputed_table.data());
     }
 
     virtual ~PQDis () {
+#pragma omp critical
+        {
+            hnsw_stats.ndis += ndis;
+        }
+    }
+};
+
+
+}  // namespace
+
+
+namespace {
+
+
+struct PQNICDMDis: DistanceComputer {
+    Index::idx_t nb;
+    const uint8_t *codes;
+    size_t code_size;
+    const ProductQuantizer & pq;
+    const float *sdc;
+    std::vector<float> precomputed_table;
+    size_t ndis;
+    storage_idx_t idx_q;
+
+    float operator () (storage_idx_t i) override
+    {
+        float* gt = AVGDIS;
+        const uint8_t *code = codes + i * code_size;
+        const float *dt = precomputed_table.data();
+        float accu = 0;
+        for (int j = 0; j < pq.M; j++) {
+            accu += dt[*code++];
+            dt += 256;
+        }
+        ndis++;
+        return ~idx_q ? accu / powf(sqrtf(gt[idx_q] * gt[i]), alpha) : accu;
+    }
+
+    float symmetric_dis(storage_idx_t i, storage_idx_t j) override
+    {
+        float* gt = AVGDIS;
+        const float * sdci = sdc;
+        float accu = 0;
+        const uint8_t *codei = codes + i * code_size;
+        const uint8_t *codej = codes + j * code_size;
+
+        for (int l = 0; l < pq.M; l++) {
+            accu += sdci[(*codei++) + (*codej++) * 256];
+            sdci += 256 * 256;
+        }
+        return ~idx_q ? accu / powf(sqrtf(gt[i] * gt[j]), alpha) : accu;
+    }
+
+    PQNICDMDis(const IndexPQ& storage, const float* /*q*/ = nullptr)
+        : pq(storage.pq) {
+      precomputed_table.resize(pq.M * pq.ksub);
+      nb = storage.ntotal;
+      d = storage.d;
+      codes = storage.codes.data();
+      code_size = pq.code_size;
+      FAISS_ASSERT(pq.ksub == 256);
+      FAISS_ASSERT(pq.sdc_table.size() == pq.ksub * pq.ksub * pq.M);
+      sdc = pq.sdc_table.data();
+      ndis = 0;
+    }
+
+    void set_query(const float *x, storage_idx_t idx = -1) override {
+        pq.compute_distance_table(x, precomputed_table.data());
+        idx_q = idx;
+    }
+
+    virtual ~PQNICDMDis () {
 #pragma omp critical
         {
             hnsw_stats.ndis += ndis;
@@ -2036,6 +2108,7 @@ void IndexHNSWPQ::train(idx_t n, const float* x)
 
 DistanceComputer * IndexHNSWPQ::get_distance_computer () const
 {
+    if (dis_method == "NICDM") return new PQNICDMDis (*dynamic_cast<IndexPQ*> (storage));
     return new PQDis (*dynamic_cast<IndexPQ*> (storage));
 }
 
@@ -2079,7 +2152,7 @@ struct SQDis: DistanceComputer {
       dc = sq.get_distance_computer();
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
     }
 
@@ -2150,7 +2223,7 @@ struct Distance2Level: DistanceComputer {
         return fvec_L2sqr(buf.data() + d, buf.data(), d);
     }
 
-    void set_query(const float *x) override {
+    void set_query(const float *x, storage_idx_t idx = -1) override {
         q = x;
     }
 };

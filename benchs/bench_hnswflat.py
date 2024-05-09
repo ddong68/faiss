@@ -1,7 +1,7 @@
 import time
 import sys
-sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/python')
-sys.path.insert(0, '/home/CPC/hanhan/faiss-1.5.0/benchs')
+sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/python')
+sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/benchs')
 import faiss
 import numpy as np
 from datasets import load_sift1M
@@ -12,11 +12,12 @@ from datasets import load_glove2m
 from datasets import load_imageNet
 from datasets import load_random_gaussian
 from datasets import load_word2vec
+from datasets import load_tiny80m
 
 # 参数：k、m、efc、maxInDegree、splitRate、r1、r2、nb1、nb2
 para = sys.argv
 INF = int(1e9 + 7)
-# para = [None, 'glove1M', 5, 300, 10]
+# para = [None, 'tiny80M', 5, 300, 10, 0.001]
 ef = [10, 20, 30, 40, 50, 60, 70, 80, 90 
       , 100, 200, 300, 400, 500, 600, 700, 800, 900
       , 1000, 2000, 3000, 4000, 5000, 7000, 9000, 10000, 20000
@@ -35,8 +36,9 @@ nb1 = 4
 nb2 = 2
 nicdm_k = int(para[4])
 dis_method = 'NICDM'
-alpha = float(para[5])
-# python benchs/bench_hnswflat.py glove1M 5 300 10 60
+alpha = 1.0
+sr = float(para[5])
+# python benchs/bench_hnswflat.py glove1M 5 300 10
 
 # 加载数据
 print(f"load data: dataset[{dataset}],m[{m}],efc[{efConstruction}],nicdm_k[{nicdm_k}],dis_method[{dis_method}],alpha[{alpha}]")
@@ -56,6 +58,8 @@ elif dataset == "imageNet":
     xb, xq, xt, gt = load_imageNet()
 elif dataset == "word2vec":
     xb, xq, xt, gt = load_word2vec()
+elif dataset == "tiny80M":
+    xb, xq, xt, gt = load_tiny80m()
 else:
     print("dataset not exist")
     exit()
@@ -119,7 +123,7 @@ def evaluate_hnswflat_hot(index):
 def clac_nicdm_avgdis_ivf():
     print(f"clac k{nicdm_k} by ivf")
     index = faiss.IndexFlatL2(d)
-    rnd_rows = np.random.choice(xb.shape[0], int(0.01 * xb.shape[0]), replace=False)
+    rnd_rows = np.random.choice(xb.shape[0], int(sr * xb.shape[0]), replace=False)
     index.add(xb[rnd_rows])
     t0 = time.time()
     faiss.omp_set_num_threads(32)
@@ -141,7 +145,7 @@ if dis_method == 'NICDM':
     avgdis = clac_nicdm_avgdis_ivf()
     # avgdis = clac_nicdm_avgdis_hnsw()
     index.set_nicdm_distance(faiss.swig_ptr(avgdis), alpha)
-faiss.omp_set_num_threads(32)
+# faiss.omp_set_num_threads(32)
 index.add(xb)
 
 # 搜索结果

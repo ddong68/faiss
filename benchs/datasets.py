@@ -86,7 +86,7 @@ def sanitize(x):
     return np.ascontiguousarray(x.astype('float32'))
 
 # 数据加载
-simdir = '/home/CPC/data/'
+simdir = '/home/wanghongya/dataset/'
 
 def load_sift1M():
     print("Loading sift1M...", end='', file=sys.stderr)
@@ -110,14 +110,14 @@ def load_sift10K():
 
     return xb, xq, xt, gt
 
-def load_bigann():
+def load_bigann(dbsize):
     print("load sift.....")
     # basedir = simdir + 'sift1B/'
     basedir = '/home/wanghongya/sift1B/'
 
-    dbsize = 100
-    nb = dbsize * 1000 * 1000
-    # xb = bvecs_mmap(basedir + '1milliard.p1.siftbin')
+    # dbsize = 100
+    # nb = dbsize * 1000 * 1000
+    xb_map = bvecs_mmap(basedir + '1milliard.p1.siftbin')
     xq = bvecs_mmap(basedir + 'queries.bvecs')
     xt = bvecs_mmap(basedir + 'learn.bvecs')
     # trim xb to correct size
@@ -126,28 +126,16 @@ def load_bigann():
     xq = sanitize(xq)
     gt = ivecs_read(basedir + 'gnd/idx_%dM.ivecs' % dbsize)
 
-    return nb, xq, xt, gt
+    return xb_map, xq, xt, gt
 
-def index_add_bigann(index, nb, step=int(1e7)):
-    # basedir = simdir + 'sift1B/'
-    basedir = '/home/wanghongya/sift1B/'
-    xb = bvecs_mmap(basedir + '1milliard.p1.siftbin')
-    start = 0
-    end = nb
-    sp = nb // step
-    for i in range(start, end, step):
-        t0 = time.time()
-        index.add(sanitize(xb[i: min(end, i + step)]))
-        print(f"add {int(i/step+1)}/{sp} in {(time.time() - t0):.3f} s")
-
-def load_deep():
+def load_deep(dbsize):
     print("load deep.....")
     # basedir = simdir + 'deep1b/'
     basedir = '/data/wanghongyadatasets/deep1b/'
     
-    dbsize = 100
-    nb = dbsize * 1000 * 1000
-    # xb = mmap_fvecs(basedir + 'deep1B_base.fvecs')
+    # dbsize = 100
+    # nb = dbsize * 1000 * 1000
+    xb_map = mmap_fvecs(basedir + 'deep1B_base.fvecs')
     xq = mmap_fvecs(basedir + 'deep1B_queries.fvecs')
     xt = mmap_fvecs(basedir + 'deep1B_learn.fvecs')
     # trim xb to correct size
@@ -156,19 +144,17 @@ def load_deep():
     xq = sanitize(xq[:10000])
     gt = ivecs_read(basedir + 'deep%dM_groundtruth.ivecs' % dbsize)
   
-    return nb, xq, xt, gt
+    return xb_map, xq, xt, gt
 
-def index_add_deep(index, nb, step=int(1e7)):
-    # basedir = simdir + 'deep1b/'
-    basedir = '/data/wanghongyadatasets/deep1b/'
-    xb = mmap_fvecs(basedir + 'deep1B_base.fvecs')
+def index_add_part(index, xb_map, nb, step=int(1e7)):
     start = 0
     end = nb
     sp = nb // step
     for i in range(start, end, step):
         t0 = time.time()
-        index.add(sanitize(xb[i: min(end, i + step)]))
-        print(f"add {int(i/step+1)}/{sp} in {(time.time() - t0):.3f} s")
+        index.add(sanitize(xb_map[i: min(end, i + step)]))
+        t1 = time.time()
+        print(f"add {int(i/step+1)}/{sp} in {(t1 - t0):.3f} s")
 
 # gist 1M
 def load_gist():
@@ -299,6 +285,21 @@ def load_trevi():
     xq = sanitize(xq[:])
     gt = ivecs_read(basedir + 'trevi_groundtruth.ivecs')
     
+    return xb, xq, xt, gt
+
+def load_tiny80m():
+    print("load Tiny80m.....",end='',file=sys.stderr)
+    basedir = '/data/wanghongyadatasets/Tiny80M/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'tiny80M_base.fvecs')
+    xq = mmap_fvecs(basedir + 'tiny80M_query.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xb[:500000])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'tiny80M_groundtruth.ivecs')
+    print("done",file=sys.stderr)
     return xb, xq, xt, gt
 
 def evaluate(index, xq, gt, k):
