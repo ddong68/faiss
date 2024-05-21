@@ -30,8 +30,8 @@ part_dataset = ['bigann', 'deep']
 
 # 加载输入参数
 para = sys.argv
-para = [None, 'glove1M', 5, 300, 20, 0.01]
-# para = [None, 'bigann', 5, 300, 16, 0.001, 10]
+# para = [None, 'glove1M', 5, 300, 20, 0.01]
+# para = [None, 'bigann', 5, 300, 16, 0.0001, 1000]
 dataset = str(para[1])
 k = 500
 m = int(para[2])
@@ -49,7 +49,7 @@ alpha = 1.0
 sr = float(para[5]) # sampling rate
 if dataset in part_dataset:
     dbsize = int(para[6])
-    step = int(1e7)
+    step = int(1e6)
     print(f"load data: dbsize[{dbsize}],step[{step}]")
 # python benchs/bench_hnswpq.py sift1M 5 300 16 10
 # python benchs/bench_hnswpq.py bigann 5 300 16 10 1000

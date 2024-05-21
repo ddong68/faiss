@@ -1813,7 +1813,6 @@ struct FlatInnerPrductDis: DistanceComputer {
 
 namespace {
 
-
 struct FlatL2Dis: DistanceComputer {
     Index::idx_t nb;
     const float *q;

@@ -75,6 +75,10 @@ void HNSW::neighbor_range(idx_t no, int layer_no,
 
 
 
+long long computer_count=0;
+std::atomic<size_t>* in_degree;
+std::atomic<size_t>* re_in_degree;
+size_t time_n=0;
 HNSW::HNSW(int M) : rng(12345) {
   set_default_probas(M,1/log(M));
   // set_default_probas(M,0);
@@ -85,6 +89,8 @@ HNSW::HNSW(int M) : rng(12345) {
   upper_beam = 1;
   offsets.push_back(0);
   hot_hubs.resize(1);
+  in_degree = (std::atomic<size_t>*)malloc(1e9 * sizeof(std::atomic<size_t>));
+  re_in_degree = (std::atomic<size_t>*)malloc(1e9 * sizeof(std::atomic<size_t>));
 }
 
 
@@ -138,10 +144,6 @@ void HNSW::reset() {
   neighbors.clear();
 }
 
-long long computer_count=0;
-std::atomic<size_t> in_degree[100000000] = {};
-std::atomic<size_t> re_in_degree[100000000] = {};
-size_t time_n=0;
 void HNSW::print_neighbor_stats(int level) const
 {
   FAISS_THROW_IF_NOT (level < cum_nneighbor_per_level.size());
