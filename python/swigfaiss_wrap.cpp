@@ -46763,6 +46763,7 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hnsw(PyObject *SWIGUNUSEDPARM(self),
   faiss::HNSW::idx_t arg2 ;
   int arg3 ;
   float *arg4 = (float *) 0 ;
+  std::string arg5 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   long val2 ;
@@ -46775,8 +46776,9 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hnsw(PyObject *SWIGUNUSEDPARM(self),
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
   PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOOO:HNSW_find_inNode_Hnsw",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:HNSW_find_inNode_Hnsw",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_find_inNode_Hnsw" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
@@ -46798,9 +46800,18 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hnsw(PyObject *SWIGUNUSEDPARM(self),
   }
   arg4 = reinterpret_cast< float * >(argp4);
   {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(obj4, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "HNSW_find_inNode_Hnsw" "', argument " "5"" of type '" "std::string""'"); 
+    }
+    arg5 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
     Py_BEGIN_ALLOW_THREADS
     try {
-      (arg1)->find_inNode_Hnsw(arg2,arg3,(float const *)arg4);
+      (arg1)->find_inNode_Hnsw(arg2,arg3,(float const *)arg4,arg5);
     } catch(faiss::FaissException & e) {
       PyEval_RestoreThread(_save);
       PyErr_SetString(PyExc_RuntimeError, e.what());
@@ -46821,6 +46832,7 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hot(PyObject *SWIGUNUSEDPARM(self), 
   faiss::HNSW::idx_t arg2 ;
   int arg3 ;
   float *arg4 = (float *) 0 ;
+  std::string arg5 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   long val2 ;
@@ -46833,8 +46845,9 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hot(PyObject *SWIGUNUSEDPARM(self), 
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
   PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOOO:HNSW_find_inNode_Hot",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:HNSW_find_inNode_Hot",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_faiss__HNSW, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "HNSW_find_inNode_Hot" "', argument " "1"" of type '" "faiss::HNSW *""'"); 
@@ -46856,9 +46869,18 @@ SWIGINTERN PyObject *_wrap_HNSW_find_inNode_Hot(PyObject *SWIGUNUSEDPARM(self), 
   }
   arg4 = reinterpret_cast< float * >(argp4);
   {
+    std::string *ptr = (std::string *)0;
+    int res = SWIG_AsPtr_std_string(obj4, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "HNSW_find_inNode_Hot" "', argument " "5"" of type '" "std::string""'"); 
+    }
+    arg5 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  {
     Py_BEGIN_ALLOW_THREADS
     try {
-      (arg1)->find_inNode_Hot(arg2,arg3,(float const *)arg4);
+      (arg1)->find_inNode_Hot(arg2,arg3,(float const *)arg4,arg5);
     } catch(faiss::FaissException & e) {
       PyEval_RestoreThread(_save);
       PyErr_SetString(PyExc_RuntimeError, e.what());

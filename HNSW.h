@@ -456,8 +456,8 @@ void add_links_to_hubs(
   void statcihotlinknums(idx_t n);
   void getKnn(DistanceComputer& qdis,idx_t id,idx_t n,int k,std::priority_queue<NodeDistCloser>& initial_list);
   void staticKNNHot(idx_t n, int len_ratios,const float* ht_hbs_ratios);
-  void find_inNode_Hnsw(idx_t n,int len_ratios,const float* ht_hbs_ratios);
-  void find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios);
+  void find_inNode_Hnsw(idx_t n,int len_ratios,const float* ht_hbs_ratios,std::string dataName);
+  void find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios,std::string dataName);
 
   //构图过程统计热点
   // std::vector<idx_t> in_degree;

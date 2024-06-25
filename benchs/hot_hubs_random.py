@@ -1,8 +1,8 @@
 import time
 import sys
 import numpy as np
-sys.path.insert(0,'/home/wanghongya/lc/faiss150/python')
-sys.path.insert(0,'/home/wanghongya/lc/faiss150/benchs')
+sys.path.insert(0,'/home/wanghongya/dongdong/faiss-1.5.0/python')
+sys.path.insert(0,'/home/wanghongya/dongdong/faiss-1.5.0/benchs')
 import faiss
 # import util
 import os
@@ -10,118 +10,86 @@ import random
 from faiss import normalize_L2
 
 
-# from datasets import load_random
-# from datasets import load_glove
-from datasets import load_audio
+from datasets import load_sift1M
 from datasets import load_sift10K
-# from datasets import load_sift1M
-# from datasets import load_deep
-# from datasets import load_gist
-# from datasets import load_imageNet
-# from datasets import load_sift10K
-# from datasets import load_bigann
-# from datasets import load_sun
-# from datasets import load_msong
-# from datasets import load_movielens
-# from datasets import load_yahoomusic
-# from datasets import load_tiny5m
-# from datasets import load_cifar60k
-# from datasets import load_word2vec
-# from datasets import load_netflix
-# from datasets import load_glove2m
-# from datasets import load_msong
-# from datasets import load_sun
-# from datasets import load_movielens
-# from datasets import load_random_gaussian
-# from datasets import load_random_gaussian_1
-# from datasets import load_nuswide
-# from datasets import load_nuswide_230
-# from datasets import load_Tiny80m
-# from datasets import load_trevi
-# from datasets import load_random_gaussian_center
-# from datasets import load_word2vec_cosine
-# from datasets import load_glove2m_cosine
-# from datasets import load_text2image1B
-# from datasets import load_
-# from datasets import load_
-print(sys.path)
-k = int(sys.argv[1])
-m = int(sys.argv[2])
-efcon = int(sys.argv[3])
-r1 = float(sys.argv[4])
-r2 = float(sys.argv[5])
+from datasets import load_audio
+from datasets import load_glove
+from datasets import load_glove2m
+from datasets import load_imageNet
+from datasets import load_random_gaussian
+from datasets import load_word2vec
+from datasets import load_tiny80m
+from datasets import load_deep
+from datasets import load_bigann
+from datasets import load_random_hypercube
+from datasets import load_random_hypersphere
+from datasets import load_random_hypercube200
+from datasets import load_random_hypersphere200
+from datasets import load_random_hypersphere50
 
-nb1 = int(sys.argv[6])
-nb2 = int(sys.argv[7])
-maxInDegree=int(sys.argv[8])
-splitRate=float(sys.argv[9])
+
+print(sys.path)
+INF = int(1e9 + 7)
+m = int(sys.argv[1])
+efcon = int(sys.argv[2])
+k = int(sys.argv[3])
+dataset = str(sys.argv[4])
+r1 = 0.01
+r2 = 0.03
+
+nb1 = 4
+nb2 = 2
+maxInDegree=INF
+splitRate=1.0
 # dataName=sys.argv[8]
 todo = sys.argv[2:]
 # print('K',k,"m",m,'efcon',efcon,"r1",r1,"r2",r2)
 
 
-print("load data")
-# xb, xq,xt, gt = load_deep()  
-# if dataName=="sift1m":
-#xb, xq, xt, gt = load_sift1M()  
-# elif dataName=="deep1m":
-#     xb, xq, xt, gt = load_deep()
-# elif dataName=="gist":
-# xb, xq, xt, gt = load_gist() 
-# elif dataName=="glove1m":
-# xb, xq, xt, gt = load_glove() 
-# elif dataName=="glove2m":
-# xb, xq, gt = load_glove2m()
-# elif dataName=="tiny5m":
-#     xb, xq, gt = load_tiny5m()
-# elif dataName=="word2vec":
-# xb, xq, gt = load_word2vec()                         
-# xb, xq, xt, gt = load_sift1M()
-xb, xq, xt, gt = load_sift10K()
-# xb, xq, xt, gt = load_audio()
-# xb, xq, xt, gt = load_imageNet()
-# xb, xq, xt, gt = load_random()
-# xb, xq, xt, gt = load_glove()
-# xb, xq, gt = load_msong()
-# xb, xq, gt = load_Tiny80m()
-# xb, xq, gt = load_trevi()
-#xb, xq, gt = load_text2image1B()
+# 加载数据
+print(f"load data: dataset[{dataset}],m[{m}],efc[{efcon}],k[{k}],maxIn[{maxInDegree}]")
+if dataset == "sift10K":
+    xb, xq, xt, gt = load_sift10K()
+elif dataset == "audio":
+    xb, xq, xt, gt = load_audio()
+elif dataset == "sift1M":
+    xb, xq, xt, gt = load_sift1M()
+elif dataset == "glove1M":
+    xb, xq, xt, gt = load_glove()
+elif dataset == "glove2M":
+    xb, xq, xt, gt = load_glove2m()
+elif dataset == "random_gaussian":
+    xb, xq, xt, gt = load_random_gaussian()
+elif dataset == "imageNet":
+    xb, xq, xt, gt = load_imageNet()
+elif dataset == "word2vec":
+    xb, xq, xt, gt = load_word2vec()
+elif dataset == "tiny80m":
+    xb, xq, xt, gt = load_tiny80m()
+elif dataset == "deep":
+    xb, xq, xt, gt = load_deep()
+elif dataset == "bigann":
+    xb, xq, xt, gt = load_bigann()
+elif dataset == "random_hypercube":
+    xb, xq, xt, gt = load_random_hypercube()
+elif dataset == "random_hypersphere":
+    xb, xq, xt, gt = load_random_hypersphere()
+elif dataset == "random_hypercube200":
+    xb, xq, gt = load_random_hypercube200()
+elif dataset == "random_hypersphere200":
+    xb, xq, gt = load_random_hypersphere200()
+elif dataset == "random_hypersphere50":
+    xb, xq, xt, gt = load_random_hypersphere50()
+else:
+    print("dataset not exist")
+    exit()
 
-# xb, xq, gt = load_movielens()
-# xb, xq, gt = load_yahoomusic()
-# xb, xq, gt = load_tiny5m()
-# xb, xq, gt = load_word2vec()
-# xb, xq, gt = load_word2vec_cosine()
-# xb, xq, gt = load_word2vec_cosine()
+
 # normalize_L2(xb)
 # normalize_L2(xq)
 
 
-# xb, xq, gt = load_netflix()
-# xb, xq, gt = load_glove2m()
-# xb, xq, gt = load_random_gaussian_center()
 
-# for i in range(10):
-#     print(i)
-#     print(len(xb[i]))
-#     print(xb[i])
-#     print(len(xq[i]))
-#     print(xq[i])
-#     print(len(gt[i]))
-#     print(gt[i])
-# print(gt)
-# xb, xq, xt, gt = load_gist()
-# xb, xq, xt, gt = load_deep()
-# xb, xq, xt, gt =load_sift10K()  
-# xb, xq, xt, gt =load_sun()
-
-# xb, xq, gt =load_movielens()
-# xb, xq, gt =load_nuswide()
-# xb, xq, gt =load_nuswide_230()
-# xb, xq, gt =load_cifar60k()
-# xb, xq, gt =load_random_gaussian()
-# xb, xq, gt =load_random_gaussian_1()
-# xb, xq, xt, gt = load_bigann()
 nq, d = xq.shape
 print("nq:%d d:%d" %(nq,d))
 n=xb.shape[0]
@@ -168,7 +136,7 @@ nb_nbors_per_level[0][0]=nb1
 nb_nbors_per_level[0][1]=nb2
 
 # #统计入度
-# index.hnsw.find_inNode_Hnsw(n,2,faiss.swig_ptr(ratios))
+index.hnsw.find_inNode_Hnsw(n,2,faiss.swig_ptr(ratios),str(m)+'m_'+str(maxInDegree)+'indegree_'+dataset)
 
 
 #获取热点
@@ -212,7 +180,7 @@ index.hnsw.getHotSet(n,2,faiss.swig_ptr(ratios))
 
 def evaluate_flat(index):
     # for timing with a single core
-    faiss.omp_set_num_threads(1)
+    # faiss.omp_set_num_threads(1)
     index.hnsw.resetCount()
     t0 = time.time()
     
@@ -230,15 +198,15 @@ def evaluate_flat(index):
         (t1 - t0) * 1000.0 / nq, recall_at_1,computer_count,computer_count/nq))
     return recall_at_1
 # for efSearch in [500]:
-for efSearch in 10,20,30,40,50,60,70,80,100,110,120,130,140,150,160,200,300,400,500,600,1000,2000,3000,5000,6000,12000,20000,30000,33000,35000,38000,40000:
-# for efSearch in 10,20,30,40,50,70,80,100,120,130,140,150 ,200,300,400,500,600,1000,2000,3000,5000,8000,9000,11000,20000:
+# for efSearch in 10,20,30,40,50,60,70,80,100,110,120,130,140,150,160,200,300,400,500,600,1000,2000,3000,5000,6000,12000,20000,30000,33000,35000,38000,40000:
+for efSearch in 10,20,30,40,50,70,80,100,120,130,140,150 ,200,300,400,500,600,1000,2000,3000,5000,8000,9000,11000,20000:
     index.hnsw.efSearch = efSearch
     print(efSearch, end=' ')
     # evaluate(index)
     if(evaluate_flat(index) == 1):
         break
 #从边的角度统计热点占比：
-index.hnsw.statichotpercent(n)
+# index.hnsw.statichotpercent(n)
 # 增强索引
 # 2，1 表示使用聚类方法选择/随机分类，添加热点
 # 0，0 表示使用全局方法选择，添加热点
@@ -253,7 +221,7 @@ print("第1层")
 print(index.hnsw.cum_nb_neighbors(1))
 hot_t1 = time.time()
 print((hot_t1 - hot_t0) * 1000.0)
-# index.hnsw.find_inNode_Hot(n,2,faiss.swig_ptr(ratios))
+index.hnsw.find_inNode_Hot(n,2,faiss.swig_ptr(ratios),str(m)+'m_'+str(maxInDegree)+'indegree_'+dataset)
 # index.static_in_degree_by_direct(n)
 
 
@@ -269,7 +237,7 @@ t = []
 
 
 def evaluate_one(index, j, efs, flag):
-    faiss.omp_set_num_threads(1)
+    # faiss.omp_set_num_threads(1)
     D = np.empty((1, k), dtype=np.float32)
     I = np.empty((1, k), dtype=np.int64)
     t0 = time.time()
@@ -335,7 +303,7 @@ def evaluate_one(index, j, efs, flag):
 
 def evaluate(index):
     # for timing with a single core
-    faiss.omp_set_num_threads(1)
+    # faiss.omp_set_num_threads(1)
     D = np.empty((xq.shape[0], k), dtype=np.float32)
     I = np.empty((xq.shape[0], k), dtype=np.int64)
     #统计距离
@@ -371,8 +339,8 @@ def evaluate(index):
 # evaluate(index) 
 # for efSearch in [5000]:
 
-# for efSearch in 10,20,30,40,50,100 ,200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,11000,20000:
-for efSearch in 10,20,30,40,50,100,110,120,130,140,150,160,200,300,400,500,600,1000,2000,3000,5000,6000,12000,20000,30000,33000,35000,40000:
+for efSearch in 10,20,30,40,50,100 ,200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,11000,20000:
+# for efSearch in 10,20,30,40,50,100,110,120,130,140,150,160,200,300,400,500,600,1000,2000,3000,5000,6000,12000,20000,30000,33000,35000,40000:
     index.hnsw.efSearch = efSearch
     print(efSearch, end=' ')
     # evaluate(index)

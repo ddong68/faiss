@@ -75,7 +75,7 @@ void HNSW::neighbor_range(idx_t no, int layer_no,
 
 
 
-long long computer_count=0;
+std::atomic<size_t> computer_count;
 std::atomic<size_t>* in_degree;
 std::atomic<size_t>* re_in_degree;
 size_t time_n=0;
@@ -2312,7 +2312,7 @@ std::unordered_map<idx_t,idx_t> allInNums_g;
 std::unordered_set<idx_t> inNode_hot;
 
 
-void HNSW::find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios){
+void HNSW::find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios,std::string dataName){
   std::unordered_map<idx_t,idx_t> indu_all_hot;
   for (size_t i = 0; i < n; ++i)
   {
@@ -2366,8 +2366,8 @@ void HNSW::find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios){
     indu_all_hot_vector.push_back(pii(m.first,m.second));
   }
   std::sort(indu_all_hot_vector.begin(),indu_all_hot_vector.end(),[](pii a,pii b){return a.first<b.first;});
-  std::string dirbase="/home/wanghongya/lc/in_degree_all/sift1m/";
-  std::string dir1=dirbase;
+  std::string dirbase="/home/wanghongya/lc/in_degree_all/";
+  std::string dir1=dirbase+dataName;
   // dir+=std::to_string(efSearch);
   dir1+="hot10m_induAll.csv";
   writeCsv(indu_all_hot_vector,dir1);
@@ -2416,7 +2416,7 @@ void HNSW::find_inNode_Hot(idx_t n,int len_ratios,const float* ht_hbs_ratios){
 }
 
 //统计每一个点的入度邻居，存储在inNodesHnsw中
-void HNSW::find_inNode_Hnsw(idx_t n,int len_ratios,const float* ht_hbs_ratios){
+void HNSW::find_inNode_Hnsw(idx_t n,int len_ratios,const float* ht_hbs_ratios,std::string dataName){
   std::unordered_map<idx_t,idx_t> ma;
   for (size_t i = 0; i < n; ++i)
   {
@@ -2532,12 +2532,12 @@ void HNSW::find_inNode_Hnsw(idx_t n,int len_ratios,const float* ht_hbs_ratios){
   //std::sort(hotInVec.begin(),hotInVec.end(),[](p a,p b){return a.first<b.first;});
   std::sort(normalInVec.begin(),normalInVec.end(),[](p a,p b){return a.first<b.first;});
   std::sort(all_normal_diff.begin(),all_normal_diff.end(),[](p a,p b){return a.first<b.first;});
-  std::string dirbase="/home/wanghongya/lc/in_degree_all/sift1m/";
+  std::string dirbase="/home/wanghongya/lc/in_degree_all/";
   
   // std::string dir1=dirbase;
   // // dir+=std::to_string(efSearch);
   // dir1+="induAll.csv";
-  writeCsv(allInVec,dirbase+"base10m_induAll.csv");
+  writeCsv(allInVec,dirbase+dataName+"base10m_induAll.csv");
   // for(int temp=0;temp<allInVec.size();temp++){
   //   printf("%d\t%d\n",allInVec[temp].first,allInVec[temp].second);
   // }

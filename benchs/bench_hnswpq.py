@@ -1,7 +1,7 @@
 import time
 import sys
-sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/python')
-sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/benchs')
+sys.path.insert(0, '/home/wanghongya/dongdong/faiss-1.5.0/python')
+sys.path.insert(0, '/home/wanghongya/dongdong/faiss-1.5.0/benchs')
 import faiss
 import numpy as np
 from datasets import sanitize
@@ -17,6 +17,7 @@ from datasets import load_glove2m
 from datasets import load_imageNet
 from datasets import load_random_gaussian
 from datasets import load_word2vec
+from datasets import load_trevi
 
 # global
 INF = int(1e9 + 7)
@@ -43,13 +44,14 @@ r2 = 0.01
 nb1 = 4
 nb2 = 2
 pq_m = int(para[4])
-dis_method = 'NICDM'
+dis_method = str(para[6])
 ls_k = 10
 alpha = 1.0
 sr = float(para[5]) # sampling rate
 if dataset in part_dataset:
     dbsize = int(para[6])
-    step = int(1e6)
+    step = int(1e7)
+    # step = int(para[7])
     print(f"load data: dbsize[{dbsize}],step[{step}]")
 # python benchs/bench_hnswpq.py sift1M 5 300 16 10
 # python benchs/bench_hnswpq.py bigann 5 300 16 10 1000
@@ -61,6 +63,9 @@ if dataset == "sift10K":
     nb = xb.shape[0]
 elif dataset == "audio":
     xb, xq, xt, gt = load_audio()
+    nb = xb.shape[0]
+elif dataset == "trevi":
+    xb, xq, xt, gt = load_trevi()
     nb = xb.shape[0]
 elif dataset == "sift1M":
     xb, xq, xt, gt = load_sift1M()
@@ -93,7 +98,7 @@ nq, d = xq.shape
 print("nq: [%d], d: [%d]" % (nq, d))
 
 def evaluate_hnswpq(index):
-    faiss.omp_set_num_threads(1)
+    # faiss.omp_set_num_threads(1)
     index.hnsw.resetCount()
     t0 = time.time()
     D, I = index.search(xq, k)
@@ -109,7 +114,7 @@ def evaluate_hnswpq(index):
           f"{computer_count // nq};{missing_rate:.4f}")
         
 def evaluate_hnswpq_hot(index):
-    faiss.omp_set_num_threads(1)
+    # faiss.omp_set_num_threads(1)
     index.hnsw.resetCount()
     D = np.empty((xq.shape[0], k), dtype=np.float32)
     I = np.empty((xq.shape[0], k), dtype=np.int64)
@@ -204,8 +209,12 @@ def main():
     # 构造
     print("Testing HNSWPQ")
     index = faiss.IndexHNSWPQ(d, pq_m, m)#三个参数分别代表（向量维度，pq的分块数，图的边数）
-    index.verbose = False
-    index.storage.verbose = False
+    if dataset in part_dataset:
+        index.verbose = False
+        index.storage.verbose = False
+    else:
+        index.verbose = True
+        index.storage.verbose = True
     index.hnsw.efConstruction = efConstruction
     index.hnsw.maxInDegree = maxInDegree
     index.hnsw.splitRate = splitRate
@@ -239,7 +248,8 @@ def main():
 
     index.dis_method = 'L2'
     search_without_hot(index)
-    search_hot(index)
+    if dis_method == 'L2':
+        search_hot(index)
     
 if __name__ == '__main__':
     t0 = time.time()

@@ -55,6 +55,14 @@ def ivecs_read(fname):
     d = a[0]
     return a.reshape(-1, d + 1)[:, 1:].copy()
 
+def read_i8bin(filename, start_idx=0, chunk_size=None):
+    with open(filename, "rb") as f:
+        nvecs, dim = np.fromfile(f, count=2, dtype=np.int32)
+        nvecs = (nvecs - start_idx) if chunk_size is None else chunk_size
+        arr = np.fromfile(f, count=nvecs * dim, dtype=np.int8, 
+                          offset=start_idx * 4 * dim)
+    return arr.reshape(nvecs, dim)
+
 def ivecs_mmap(fname):
     a = np.memmap(fname, dtype='int32', mode='r')
     d = a[0]
@@ -110,41 +118,160 @@ def load_sift10K():
 
     return xb, xq, xt, gt
 
-def load_bigann(dbsize):
+def load_bigann():
     print("load sift.....")
     # basedir = simdir + 'sift1B/'
     basedir = '/home/wanghongya/sift1B/'
 
-    # dbsize = 100
+    dbsize = 10
     # nb = dbsize * 1000 * 1000
     xb_map = bvecs_mmap(basedir + '1milliard.p1.siftbin')
+    # xb = fvecs_read(basedir + 'sift10M_base.fvecs')
     xq = bvecs_mmap(basedir + 'queries.bvecs')
     xt = bvecs_mmap(basedir + 'learn.bvecs')
     # trim xb to correct size
-    # xb = sanitize(xb[:dbsize * 1000 * 1000])
+    xb = sanitize(xb_map[:dbsize * 1000 * 1000])
     xt = sanitize(xt[:250000])
     xq = sanitize(xq)
     gt = ivecs_read(basedir + 'gnd/idx_%dM.ivecs' % dbsize)
 
-    return xb_map, xq, xt, gt
+    return xb, xq, xt, gt
+
+def load_random_hypercube():
+    print("load random_hypercube.....",end = '', file = sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_hypercube/'
+    xb = mmap_fvecs(basedir + 'random_hypercube_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_hypercube_query.fvecs')
+    xt = mmap_fvecs(basedir + 'random_hypercube_base.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_hypercube_groundtruth.ivecs')
+    print("done", file = sys.stderr)
+    return xb, xq, xt, gt
+
+def load_random_hypersphere():
+    print("load random_hypersphere.....",end = '', file = sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_hypersphere/'
+    xb = mmap_fvecs(basedir + 'random_hypersphere_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_hypersphere_query.fvecs')
+    xt = mmap_fvecs(basedir + 'random_hypersphere_base.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_hypersphere_groundtruth.ivecs')
+    print("done", file = sys.stderr)
+    return xb, xq, xt, gt
+
+def load_random_hypersphere50():
+    print("load random_hypersphere50.....",end = '', file = sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_hypersphere50/'
+    xb = mmap_fvecs(basedir + 'random_hypersphere50_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_hypersphere50_query.fvecs')
+    xt = mmap_fvecs(basedir + 'random_hypersphere50_base.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_hypersphere50_groundtruth.ivecs')
+    print("done", file = sys.stderr)
+    return xb, xq, xt, gt
+
+
+# random_hypercube200 1M
+def load_random_hypercube200():
+    # simdir = '/home/wanghongya/'
+    print("load random_hypercube200.....", end='', file=sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_hypercube200/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'random_hypercube200_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_hypercube200_query.fvecs')
+    # xt = mmap_fvecs(basedir + 'gist_learn.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    # xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_hypercube200_groundtruth.ivecs')
+    print("done", file=sys.stderr)
+    return xb, xq, gt
+
+# random_hypersphere200 1M
+def load_random_hypersphere200():
+    # simdir = '/home/wanghongya/'
+    print("load random_hypersphere200.....", end='', file=sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_hypersphere200/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'random_hypersphere200_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_hypersphere200_query.fvecs')
+    # xt = mmap_fvecs(basedir + 'gist_learn.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    # xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_hypersphere200_groundtruth.ivecs')
+    print("done", file=sys.stderr)
+    return xb, xq, gt
+
+# random_laplace100 1M
+def load_random_laplace100():
+    # simdir = '/home/wanghongya/'
+    print("load random_laplace100.....", end='', file=sys.stderr)
+    basedir = '/home/wanghongya/dataset/random_laplace100/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'random_laplace100_base.fvecs')
+    xq = mmap_fvecs(basedir + 'random_laplace100_query.fvecs')
+    # xt = mmap_fvecs(basedir + 'gist_learn.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    # xt = sanitize(xt[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'random_laplace100_groundtruth.ivecs')
+    print("done", file=sys.stderr)
+    return xb, xq, gt
+
+
+def load_spacev():
+    print("Loading spacev...", end='', file=sys.stderr)
+    basedir = '/home/wanghongya/dataset/SPACEV/'
+    # xt = fvecs_read(basedir + "learn.fvecs")
+    # xt = read_i8bin(basedir + "spacev100m_base.i8bin")
+    # xt = xt.astype('float32')
+    dbsize=10
+    xb = read_i8bin(basedir + "spacev100m_base.i8bin")
+    xb = xb.astype('float32')
+    xb = sanitize(xb[:dbsize * 1000 * 1000])
+    xt = sanitize(xb[:25*10000])
+
+    xq = read_i8bin(basedir + "query.i8bin")
+    xq = xq.astype('float32')
+    gt = ivecs_read(basedir + 'spacev%dm_groundtruth.ivecs'% dbsize)
+    print("done", file=sys.stderr)
+    return xb, xq, gt
+
 
 def load_deep(dbsize):
-    print("load deep.....")
+    print("Loading deep...", end='', file=sys.stderr)
     # basedir = simdir + 'deep1b/'
     basedir = '/data/wanghongyadatasets/deep1b/'
     
-    # dbsize = 100
+    # dbsize = 10
     # nb = dbsize * 1000 * 1000
     xb_map = mmap_fvecs(basedir + 'deep1B_base.fvecs')
     xq = mmap_fvecs(basedir + 'deep1B_queries.fvecs')
     xt = mmap_fvecs(basedir + 'deep1B_learn.fvecs')
     # trim xb to correct size
-    # xb = sanitize(xb[:dbsize * 1000 * 1000])
-    xt = sanitize(xt[:500000])
+    xb = sanitize(xb_map[:dbsize * 1000 * 1000])
+    # xt = sanitize(xt[:500000])
+    xt = xb
     xq = sanitize(xq[:10000])
     gt = ivecs_read(basedir + 'deep%dM_groundtruth.ivecs' % dbsize)
-  
-    return xb_map, xq, xt, gt
+    print("done", file=sys.stderr)
+    return xb, xq, xt, gt
 
 def index_add_part(index, xb_map, nb, step=int(1e7)):
     start = 0
@@ -160,7 +287,6 @@ def index_add_part(index, xb_map, nb, step=int(1e7)):
 def load_gist():
     # simdir = '/home/wanghongya/'
     print("load gist.....")
-    # basedir = simdir + 'deep1b/'
     basedir = '/home/wanghongya/gist/'
     
     dbsize = 1
@@ -194,7 +320,7 @@ def load_glove():
     
 def load_glove2m():
     print("Loading glove2M...", end='', file=sys.stderr)
-
+    simdir = '/data/wanghongyadatasets/'
     basedir = simdir + 'glove2.2m/'
     
     dbsize = 1
@@ -230,7 +356,7 @@ def load_sun():
 
 def load_random():
     print("Loading random...", end='', file=sys.stderr)
-    basedir = '/mnt/c/study/data/random/'
+    basedir = '/home/wanghongya/dataset/random/'
     xt = fvecs_read(basedir + "random_base.fvecs")
     xb = fvecs_read(basedir + "random_base.fvecs")
     xq = fvecs_read(basedir + "random_query.fvecs")
@@ -263,10 +389,11 @@ def load_word2vec():
 def load_random_gaussian():
     print('load_random_gaussian')
     basedir = simdir + 'random_gaussian/'
-    xb = mmap_fvecs(basedir + 'gaussian_data.fvecs')
-    xt = np.zeros((0, 0))
+    xb = mmap_fvecs(basedir + 'gaussian_base.fvecs')
+    xt = mmap_fvecs(basedir + 'gaussian_base.fvecs')
     xq = mmap_fvecs(basedir + 'gaussian_query.fvecs')
     xb = sanitize(xb[:])
+    xt = sanitize(xt[:])
     xq = sanitize(xq[:])
     gt = ivecs_read(basedir + "gaussian_groundtruth.ivecs")
     return xb, xq, xt, gt
@@ -299,6 +426,21 @@ def load_tiny80m():
     xt = sanitize(xb[:500000])
     xq = sanitize(xq[:])
     gt = ivecs_read(basedir + 'tiny80M_groundtruth.ivecs')
+    print("done",file=sys.stderr)
+    return xb, xq, xt, gt
+
+def load_tiny5m():
+    print("load Tiny5m.....",end='',file=sys.stderr)
+    basedir = '/data/wanghongyadatasets/tiny5m/'
+    
+    dbsize = 1
+    xb = mmap_fvecs(basedir + 'tiny5m_base.fvecs')
+    xq = mmap_fvecs(basedir + 'tiny5m_query.fvecs')
+    # trim xb to correct size
+    xb = sanitize(xb[:])
+    xt = sanitize(xb[:])
+    xq = sanitize(xq[:])
+    gt = ivecs_read(basedir + 'tiny5m_groundtruth.ivecs')
     print("done",file=sys.stderr)
     return xb, xq, xt, gt
 

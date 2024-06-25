@@ -1,7 +1,7 @@
 import time
 import sys
-sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/python')
-sys.path.insert(0, '/home/wanghongya/hanhan/faiss-1.5.0/benchs')
+sys.path.insert(0, '/home/wanghongya/dongdong/faiss-1.5.0/python')
+sys.path.insert(0, '/home/wanghongya/dongdong/faiss-1.5.0/benchs')
 import faiss
 import numpy as np
 from datasets import load_sift1M

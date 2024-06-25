@@ -3557,11 +3557,11 @@ class HNSW(_object):
     def staticKNNHot(self, n, len_ratios, ht_hbs_ratios):
         return _swigfaiss.HNSW_staticKNNHot(self, n, len_ratios, ht_hbs_ratios)
 
-    def find_inNode_Hnsw(self, n, len_ratios, ht_hbs_ratios):
-        return _swigfaiss.HNSW_find_inNode_Hnsw(self, n, len_ratios, ht_hbs_ratios)
+    def find_inNode_Hnsw(self, n, len_ratios, ht_hbs_ratios, dataName):
+        return _swigfaiss.HNSW_find_inNode_Hnsw(self, n, len_ratios, ht_hbs_ratios, dataName)
 
-    def find_inNode_Hot(self, n, len_ratios, ht_hbs_ratios):
-        return _swigfaiss.HNSW_find_inNode_Hot(self, n, len_ratios, ht_hbs_ratios)
+    def find_inNode_Hot(self, n, len_ratios, ht_hbs_ratios, dataName):
+        return _swigfaiss.HNSW_find_inNode_Hot(self, n, len_ratios, ht_hbs_ratios, dataName)
 
     def static_in_degree_by_construction(self, n):
         return _swigfaiss.HNSW_static_in_degree_by_construction(self, n)

@@ -667,7 +667,6 @@ void IndexHNSW::combine_search(
     }
 }
 
-
 void IndexHNSW::set_nicdm_distance(float* x, float y) {
     AVGDIS = x;
     alpha = y;
